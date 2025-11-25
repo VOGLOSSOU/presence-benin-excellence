@@ -1,0 +1,21 @@
+
+OMMENT CA MARCHE - COMMENT JE LE FAIS
+
+J' ai rédigé une description complète du projet, et je l' ai mis 
+dans le fichier description-systeme-de-presence-benin-excellence.pdf
+
+J' ai décris la modelisation technique du projet qui est dispo dans 
+le fichier modelisation-technique-systeme-de-presence-benin-excellence.pdf
+
+Le code du diagramme visuel , écrit avec Mermaid est 
+dispo dans le fichier presence-system-diagram.Mermaid
+
+J' ai installé l' extension "Markdown Preview Mermaid Support" 
+dans les extensions VS Code
+
+J' ai insatllé Mermaid Syntax Highlighting  qui colore le code Mermaid
+
+J' ai installé Mermaid Editor  , et ensuite j' ai fait un click droit sur le fichier, puis j' ai 
+appuyé sur preview, et j' ai pu vir le diagramme
+
+

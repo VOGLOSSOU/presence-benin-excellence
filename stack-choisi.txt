@@ -1,0 +1,28 @@
+Backend  : Node.js + Express + TypeScript PostgreSQL Prisma
+Node.js + Express + TypeScript
+
+Base de données : PostgreSQL
+
+Support natif des UUID
+Excellente gestion des relations complexes (tes 7 modèles interconnectés)
+Types JSON natifs pour le champ options de FieldTemplate
+Plus robuste que MySQL pour ce genre de projet
+
+ORM : Prisma
+
+Syntaxe moderne et intuitive
+Génération automatique des types TypeScript
+Migrations faciles
+Support parfait de PostgreSQL
+
+Frontend
+React + TypeScript + Vite
+
+React pour l'interface admin (création de formulaires dynamiques)
+Vite pour un dev rapide
+Interface visiteur simple et responsive
+
+UI Library : Tailwind CSS + shadcn/ui
+
+Design moderne et rapide
+Composants réutilisables pour les formulaires dynamiques

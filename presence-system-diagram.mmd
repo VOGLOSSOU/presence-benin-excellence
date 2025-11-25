@@ -1,0 +1,74 @@
+erDiagram
+    User ||--o{ UserFieldValue : "possède"
+    User ||--o{ Presence : "enregistre"
+    FormTemplate ||--o{ FieldTemplate : "contient"
+    FormTemplate ||--o{ UserFieldValue : "définit"
+    FormTemplate ||--o{ Presence : "utilise"
+    FormTemplate ||--o{ ArrivalDepartureInterval : "a"
+    FieldTemplate ||--o{ UserFieldValue : "structure"
+    
+    User {
+        UUID id PK
+        string uuid_code UK "BE-8F92GHT"
+        string last_name
+        string first_name
+        string title "étudiant, professionnel, élève, autre"
+        string phone "optionnel"
+        string email "optionnel"
+        datetime created_at
+        datetime updated_at
+        string status "actif, inactif"
+    }
+    
+    FormTemplate {
+        UUID id PK
+        string name "Ex: Formulaire Étudiant"
+        string description
+        enum type "simple_presence ou arrival_departure"
+        boolean active
+        datetime created_at
+        datetime updated_at
+    }
+    
+    FieldTemplate {
+        UUID id PK
+        UUID form_template_id FK
+        string label "ex: Université"
+        enum field_type "text, number, date, select, checkbox, textarea"
+        boolean is_required
+        json options "pour les selects"
+        int order "position d'affichage"
+    }
+    
+    UserFieldValue {
+        UUID id PK
+        UUID user_id FK
+        UUID field_template_id FK
+        text value
+        datetime created_at
+        datetime updated_at
+    }
+    
+    Presence {
+        UUID id PK
+        UUID user_id FK
+        UUID form_template_id FK
+        enum presence_type "arrival, departure, simple"
+        datetime timestamp
+    }
+    
+    ArrivalDepartureInterval {
+        UUID id PK
+        UUID form_template_id FK
+        time start_time
+        time end_time
+        datetime created_at
+    }
+    
+    AdminUser {
+        UUID id PK
+        string username
+        string password_hash
+        enum role "super_admin, manager"
+        datetime created_at
+    }

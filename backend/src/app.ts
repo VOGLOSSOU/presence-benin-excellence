@@ -48,6 +48,7 @@ app.get('/health', (_req, res) => {
 import authRoutes from './modules/auth/auth.routes';
 import formsRoutes from './modules/forms/forms.routes';
 import enrollmentRoutes from './modules/enrollment/enrollment.routes';
+import presenceRoutes from './modules/presence/presence.routes';
 // import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 // import presenceRoutes from './modules/presence/presence.routes';
 // import formsRoutes from './modules/forms/forms.routes';
@@ -58,6 +59,7 @@ import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 app.use('/api/auth', authRoutes);
 app.use('/api/forms', formsRoutes);
 app.use('/api/enrollment', enrollmentRoutes);
+app.use('/api/presence', presenceRoutes);
 
 // app.use('/api/enrollment', enrollmentRoutes);
 // app.use('/api/presence', presenceRoutes);

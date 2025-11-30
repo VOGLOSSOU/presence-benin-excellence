@@ -593,12 +593,340 @@ Content-Type: application/json
 
 ---
 
+---
+
+## 👤 Module Enrollment (Enrôlement)
+
+### 1. Enrôler un Nouveau Visiteur
+
+**Endpoint :** `POST /api/enrollment`
+
+**Authentification :** Non requise (Public)
+
+**Headers :**
+```
+Content-Type: application/json
+```
+
+**Body :**
+```json
+{
+  "lastName": "VOGLOSSOU",
+  "firstName": "Nathan",
+  "title": "ETUDIANT",
+  "phone": "+22997123456",
+  "email": "nathan@example.com",
+  "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
+  "fieldValues": [
+    {
+      "fieldTemplateId": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
+      "value": "Université d'Abomey-Calavi"
+    },
+    {
+      "fieldTemplateId": "ef94dd4d-3411-4aa3-8a17-4d84bf0f0eda",
+      "value": "Informatique"
+    },
+    {
+      "fieldTemplateId": "545985e6-72a8-4ae5-a943-d45bae084886",
+      "value": "3"
+    }
+  ]
+}
+```
+
+**Titres possibles :**
+- `ETUDIANT`
+- `PROFESSIONNEL`
+- `ELEVE`
+- `AUTRE`
+
+**Réponse (201 Created) :**
+```json
+{
+  "success": true,
+  "message": "User enrolled successfully. UUID: BE-9UH6EVK",
+  "data": {
+    "user": {
+      "id": "aae47fad-16e2-406b-82aa-f6d73c50b1b1",
+      "uuidCode": "BE-9UH6EVK",
+      "lastName": "VOGLOSSOU",
+      "firstName": "Nathan",
+      "title": "ETUDIANT",
+      "phone": "+22997123456",
+      "email": "nathan@example.com",
+      "fieldValues": [
+        {
+          "field": "Université",
+          "value": "Université d'Abomey-Calavi"
+        },
+        {
+          "field": "Filière",
+          "value": "Informatique"
+        },
+        {
+          "field": "Année d'études",
+          "value": "3"
+        }
+      ]
+    },
+    "message": "User enrolled successfully. UUID: BE-9UH6EVK"
+  },
+  "timestamp": "2025-11-30T07:45:29.188Z"
+}
+```
+
+**Erreurs possibles :**
+
+**404 - Formulaire introuvable :**
+```json
+{
+  "success": false,
+  "message": "Form template not found",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+**400 - Champ requis manquant :**
+```json
+{
+  "success": false,
+  "message": "Required field 'Université' is missing",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+**400 - Formulaire inactif :**
+```json
+{
+  "success": false,
+  "message": "Form template is not active",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+---
+
+## ✅ Module Presence (Présences)
+
+### 1. Enregistrer une Présence
+
+**Endpoint :** `POST /api/presence`
+
+**Authentification :** Non requise (Public)
+
+**Headers :**
+```
+Content-Type: application/json
+```
+
+**Body :**
+```json
+{
+  "uuidCode": "BE-9UH6EVK",
+  "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9"
+}
+```
+
+**Logique automatique :**
+- **Type SIMPLE_PRESENCE** : Enregistre une présence simple
+- **Type ARRIVAL_DEPARTURE** :
+  - Première fois du jour → `ARRIVAL`
+  - Deuxième fois du jour → `DEPARTURE`
+  - Troisième fois → Erreur "Already checked out today"
+
+**Réponse 1 - ARRIVAL (201 Created) :**
+```json
+{
+  "success": true,
+  "message": "Arrival recorded successfully",
+  "data": {
+    "presence": {
+      "id": "7fb9a6a8-a38c-4962-a04e-ab448dbdd010",
+      "presenceType": "ARRIVAL",
+      "timestamp": "2025-11-30T14:01:41.235Z",
+      "user": {
+        "uuidCode": "BE-9UH6EVK",
+        "firstName": "Nathan",
+        "lastName": "VOGLOSSOU"
+      }
+    },
+    "message": "Arrival recorded successfully"
+  },
+  "timestamp": "2025-11-30T14:01:41.256Z"
+}
+```
+
+**Réponse 2 - DEPARTURE (201 Created) :**
+```json
+{
+  "success": true,
+  "message": "Departure recorded successfully",
+  "data": {
+    "presence": {
+      "id": "3b4168c5-e28b-468e-833f-4bed3523ba53",
+      "presenceType": "DEPARTURE",
+      "timestamp": "2025-11-30T14:02:17.341Z",
+      "user": {
+        "uuidCode": "BE-9UH6EVK",
+        "firstName": "Nathan",
+        "lastName": "VOGLOSSOU"
+      }
+    },
+    "message": "Departure recorded successfully"
+  },
+  "timestamp": "2025-11-30T14:02:17.357Z"
+}
+```
+
+**Erreurs possibles :**
+
+**404 - UUID introuvable :**
+```json
+{
+  "success": false,
+  "message": "User not found with this UUID",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+**400 - Hors intervalle horaire :**
+```json
+{
+  "success": false,
+  "message": "Outside allowed time interval (08:00 - 17:00)",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+**400 - Déjà sorti :**
+```json
+{
+  "success": false,
+  "message": "Already checked out today",
+  "timestamp": "2025-11-30T..."
+}
+```
+
+---
+
+### 2. Obtenir l'Historique des Présences
+
+**Endpoint :** `GET /api/presence/{uuidCode}`
+
+**Authentification :** Non requise (Public)
+
+**Exemple :**
+```
+GET /api/presence/BE-9UH6EVK
+```
+
+**Réponse (200 OK) :**
+```json
+{
+  "success": true,
+  "message": "Presences retrieved successfully",
+  "data": {
+    "user": {
+      "uuidCode": "BE-9UH6EVK",
+      "firstName": "Nathan",
+      "lastName": "VOGLOSSOU"
+    },
+    "presences": [
+      {
+        "id": "3b4168c5-e28b-468e-833f-4bed3523ba53",
+        "userId": "aae47fad-16e2-406b-82aa-f6d73c50b1b1",
+        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
+        "presenceType": "DEPARTURE",
+        "timestamp": "2025-11-30T14:02:17.341Z",
+        "formTemplate": {
+          "name": "Formulaire Étudiant",
+          "type": "ARRIVAL_DEPARTURE"
+        }
+      },
+      {
+        "id": "7fb9a6a8-a38c-4962-a04e-ab448dbdd010",
+        "userId": "aae47fad-16e2-406b-82aa-f6d73c50b1b1",
+        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
+        "presenceType": "ARRIVAL",
+        "timestamp": "2025-11-30T14:01:41.235Z",
+        "formTemplate": {
+          "name": "Formulaire Étudiant",
+          "type": "ARRIVAL_DEPARTURE"
+        }
+      }
+    ]
+  },
+  "timestamp": "2025-11-30T14:02:49.895Z"
+}
+```
+
+**Note :** Les présences sont triées de la plus récente à la plus ancienne. Limite de 50 résultats.
+
+---
+
+## 🔄 Workflow Complet du Système
+
+### Workflow Visiteur
+
+1. **Enrôlement (une seule fois)**
+   - `POST /api/enrollment`
+   - Recevoir son UUID : `BE-XXXXXXX`
+
+2. **Enregistrer sa présence (tous les jours)**
+   - `POST /api/presence` avec son UUID
+   - Si formulaire ARRIVAL_DEPARTURE :
+     - Matin → ARRIVAL
+     - Soir → DEPARTURE
+
+3. **Consulter son historique (optionnel)**
+   - `GET /api/presence/{uuidCode}`
+
+### Workflow Admin
+
+1. **Se connecter**
+   - `POST /api/auth/login`
+   - Recevoir un token JWT
+
+2. **Créer des formulaires**
+   - `POST /api/forms` (créer le formulaire)
+   - `POST /api/forms/{id}/fields` (ajouter des champs)
+   - `POST /api/forms/{id}/interval` (configurer l'intervalle si ARRIVAL_DEPARTURE)
+
+3. **Gérer les formulaires**
+   - `GET /api/forms` (voir tous)
+   - `PUT /api/forms/{id}` (modifier)
+   - `DELETE /api/forms/{id}` (supprimer)
+
+---
+
 ## 🔄 Modules à venir
 
-- **Enrollment** : Enregistrement des visiteurs
-- **Presence** : Enregistrement des présences
-- **Users** : Gestion des visiteurs
+- **Users** : Gestion des visiteurs (admin)
 - **Admin** : Dashboard et statistiques
 - **Reports** : Rapports et exports
 
-*Cette documentation sera mise à jour au fur et à mesure du développement.*
+---
+
+## 📝 Notes Importantes pour le Frontend
+
+### Format UUID
+- **Format** : `BE-XXXXXXX` (BE suivi de 7 caractères alphanumériques majuscules)
+- **Exemple** : `BE-9UH6EVK`, `BE-A3F8G2T`
+
+### Logique Présence
+- Pour un formulaire **ARRIVAL_DEPARTURE**, envoyer **deux fois** la même requête le même jour :
+  1. Premier appel → ARRIVAL
+  2. Deuxième appel → DEPARTURE
+- Le backend gère automatiquement la logique !
+
+### Validation des Champs
+- Tous les champs marqués `isRequired: true` doivent être remplis lors de l'enrôlement
+- Les `fieldTemplateId` doivent correspondre aux champs du formulaire choisi
+
+### Gestion des Erreurs
+- Toujours vérifier `success: false` pour détecter les erreurs
+- Afficher le `message` à l'utilisateur
+
+---
+
+*Documentation mise à jour le 30 novembre 2025.*

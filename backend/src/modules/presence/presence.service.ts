@@ -57,8 +57,13 @@ const determinePresenceType = async (
     return PresenceType.DEPARTURE;
   }
 
-  // Si la dernière était une DEPARTURE, on ne peut plus enregistrer
-  throw new BadRequestError('Already checked out today');
+  // Si la dernière était une DEPARTURE, c'est une nouvelle ARRIVAL (nouveau cycle)
+  if (lastPresence.presenceType === PresenceType.DEPARTURE) {
+    return PresenceType.ARRIVAL;
+  }
+
+  // Par défaut (ne devrait jamais arriver)
+  return PresenceType.ARRIVAL;
 };
 
 /**

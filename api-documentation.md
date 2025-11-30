@@ -728,11 +728,11 @@ Content-Type: application/json
 ```
 
 **Logique automatique :**
-- **Type SIMPLE_PRESENCE** : Enregistre une présence simple
-- **Type ARRIVAL_DEPARTURE** :
-  - Première fois du jour → `ARRIVAL`
-  - Deuxième fois du jour → `DEPARTURE`
-  - Troisième fois → Erreur "Already checked out today"
+- **Type SIMPLE_PRESENCE** : Enregistre une présence simple (illimité)
+- **Type ARRIVAL_DEPARTURE** (cycles multiples) :
+  - Si dernière présence = `DEPARTURE` ou aucune présence → `ARRIVAL`
+  - Si dernière présence = `ARRIVAL` → `DEPARTURE`
+  - **Cycles illimités** : ARRIVAL → DEPARTURE → ARRIVAL → DEPARTURE...
 
 **Réponse 1 - ARRIVAL (201 Created) :**
 ```json
@@ -778,6 +778,37 @@ Content-Type: application/json
 }
 ```
 
+**Réponse 3 - SIMPLE (201 Created) :**
+```json
+{
+  "success": true,
+  "message": "Presence recorded successfully",
+  "data": {
+    "presence": {
+      "id": "78b7c716-1fe9-477b-b998-09e040acbbfe",
+      "presenceType": "SIMPLE",
+      "timestamp": "2025-11-30T21:03:24.496Z",
+      "user": {
+        "uuidCode": "BE-9UH6EVK",
+        "firstName": "Nathan",
+        "lastName": "VOGLOSSOU"
+      }
+    },
+    "message": "Presence recorded successfully"
+  },
+  "timestamp": "2025-11-30T21:03:24.516Z"
+}
+```
+
+**Exemple de cycles multiples (ARRIVAL_DEPARTURE) :**
+```
+21:17:54 → ARRIVAL   (1er cycle - arrivée)
+21:18:50 → DEPARTURE (1er cycle - départ)
+21:19:31 → ARRIVAL   (2ème cycle - retour)
+21:20:09 → DEPARTURE (2ème cycle - départ)
+```
+✅ **Cycles illimités possibles dans la même journée !**
+
 **Erreurs possibles :**
 
 **404 - UUID introuvable :**
@@ -806,6 +837,7 @@ Content-Type: application/json
   "timestamp": "2025-11-30T..."
 }
 ```
+**Note :** Cette erreur n'apparaît plus avec la nouvelle logique. Les cycles multiples sont maintenant autorisés.
 
 ---
 
@@ -914,10 +946,16 @@ GET /api/presence/BE-9UH6EVK
 - **Exemple** : `BE-9UH6EVK`, `BE-A3F8G2T`
 
 ### Logique Présence
-- Pour un formulaire **ARRIVAL_DEPARTURE**, envoyer **deux fois** la même requête le même jour :
-  1. Premier appel → ARRIVAL
-  2. Deuxième appel → DEPARTURE
-- Le backend gère automatiquement la logique !
+- Pour un formulaire **SIMPLE_PRESENCE** :
+  - Enregistrement illimité (autant de fois que nécessaire)
+  - Toujours type `SIMPLE`
+  
+- Pour un formulaire **ARRIVAL_DEPARTURE** :
+  - **Cycles multiples autorisés** dans la même journée
+  - Si dernière présence = `DEPARTURE` (ou aucune présence) → Nouvelle `ARRIVAL`
+  - Si dernière présence = `ARRIVAL` → `DEPARTURE`
+  - Exemple : Matin (ARRIVAL → DEPARTURE) + Après-midi (ARRIVAL → DEPARTURE)
+  - Le backend gère automatiquement la logique !
 
 ### Validation des Champs
 - Tous les champs marqués `isRequired: true` doivent être remplis lors de l'enrôlement

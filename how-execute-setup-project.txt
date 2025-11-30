@@ -1,0 +1,18 @@
+Instructions d'utilisation
+Option 1 : Linux / Mac / Git Bash (Windows)
+
+Copie le contenu du script setup-project.sh
+Crée le fichier dans ton dossier de travail :
+
+bash   nano setup-project.sh
+   # ou
+   code setup-project.sh
+
+Colle le contenu et sauvegarde
+Rends-le exécutable :
+
+bash   chmod +x setup-project.sh
+
+Exécute-le :
+
+bash   ./setup-project.sh

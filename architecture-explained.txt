@@ -1,0 +1,281 @@
+# Architecture Clean - Explications détaillées
+
+## 🎯 Principes de l'architecture
+
+### 1. **Séparation des responsabilités**
+Chaque fichier a une responsabilité unique et claire.
+
+### 2. **Modularité**
+Chaque fonctionnalité est un module indépendant (auth, users, forms, etc.)
+
+### 3. **Maintenabilité**
+Code facile à lire, tester et modifier sans casser le reste.
+
+### 4. **Scalabilité**
+Facile d'ajouter de nouvelles fonctionnalités sans toucher l'existant.
+
+---
+
+## 📊 Flux de données (Request → Response)
+
+```
+Client (Frontend)
+    ↓
+Routes (routing)
+    ↓
+Middlewares (validation, auth)
+    ↓
+Controller (gestion req/res)
+    ↓
+Service (logique métier)
+    ↓
+Prisma Client (ORM)
+    ↓
+PostgreSQL (Database)
+    ↓
+← Retour vers le Client
+```
+
+---
+
+## 📁 Explication des dossiers
+
+### **prisma/**
+- **schema.prisma** : Définition des modèles (tables)
+- **seed.ts** : Créer un admin par défaut au démarrage
+- **migrations/** : Historique des changements de DB
+
+### **src/config/**
+Configuration globale du projet :
+- **database.ts** : Instance unique de Prisma Client
+- **env.ts** : Validation des variables d'environnement avec Zod
+- **constants.ts** : Constantes réutilisables (ex: UUID_PREFIX = "BE-")
+
+### **src/types/**
+Types TypeScript personnalisés :
+- **express.d.ts** : Étendre Express (ajouter `req.user`)
+- **index.ts** : Types globaux (interfaces, enums)
+
+### **src/utils/**
+Fonctions utilitaires réutilisables :
+- **uuid-generator.ts** : Génère "BE-XXXXXX"
+- **password.util.ts** : Hash et vérification passwords
+- **jwt.util.ts** : Création et vérification tokens JWT
+- **response.util.ts** : Formatage uniforme des réponses API
+- **date.util.ts** : Manipulation dates (vérifier si dans intervalle, etc.)
+
+### **src/middlewares/**
+Intercepteurs entre routes et controllers :
+- **auth.middleware.ts** : Vérifie le JWT, extrait l'admin connecté
+- **validate.middleware.ts** : Valide les données avec Zod
+- **error.middleware.ts** : Capture toutes les erreurs et formate la réponse
+- **logger.middleware.ts** : Log toutes les requêtes HTTP
+
+### **src/validators/**
+Schémas de validation Zod pour chaque module :
+```typescript
+// Exemple : user.validator.ts
+export const createUserSchema = z.object({
+  lastName: z.string().min(2),
+  firstName: z.string().min(2),
+  title: z.enum(['ETUDIANT', 'PROFESSIONNEL', 'ELEVE', 'AUTRE'])
+});
+```
+
+### **src/modules/**
+Chaque module = une fonctionnalité complète
+
+#### Structure d'un module (exemple: **users/**)
+```
+users/
+├── users.routes.ts      → Définit les routes (GET, POST, etc.)
+├── users.controller.ts  → Gère req/res, appelle le service
+├── users.service.ts     → Logique métier, appelle Prisma
+└── users.types.ts       → Types spécifiques au module
+```
+
+**Exemple de flux dans le module users :**
+```typescript
+// 1. Route
+router.get('/:id', getUserController);
+
+// 2. Controller
+export const getUserController = async (req, res, next) => {
+  const user = await userService.findById(req.params.id);
+  res.json(user);
+};
+
+// 3. Service
+export const findById = async (id: string) => {
+  return await prisma.user.findUnique({ where: { id } });
+};
+```
+
+### **src/shared/**
+Code partagé entre tous les modules :
+
+#### **errors/**
+Classes d'erreurs personnalisées :
+```typescript
+class NotFoundError extends AppError {
+  constructor(message: string) {
+    super(message, 404);
+  }
+}
+
+// Usage
+throw new NotFoundError('User not found');
+```
+
+#### **interfaces/**
+Interfaces réutilisables pour garantir la cohérence :
+```typescript
+interface IController {
+  handle(req: Request, res: Response, next: NextFunction): Promise<void>;
+}
+```
+
+---
+
+## 🔄 Modules expliqués
+
+### **1. auth/** - Authentification Admin
+- `POST /api/auth/login` : Connexion admin
+- `POST /api/auth/register` : Créer un nouvel admin (super_admin only)
+- Génère un JWT pour les requêtes protégées
+
+### **2. users/** - Gestion Visiteurs
+- `GET /api/users` : Liste tous les visiteurs (admin)
+- `GET /api/users/:id` : Détails d'un visiteur
+- `PUT /api/users/:id` : Modifier un visiteur (admin only)
+- `DELETE /api/users/:id` : Supprimer un visiteur
+
+### **3. enrollment/** - Enrôlement
+- `POST /api/enrollment` : Créer un nouveau visiteur + UUID
+- Rempli automatiquement les `UserFieldValue`
+- Retourne l'UUID généré (BE-XXXXXX)
+
+### **4. forms/** - Formulaires dynamiques
+- `GET /api/forms` : Liste des formulaires
+- `POST /api/forms` : Créer un formulaire (admin)
+- `PUT /api/forms/:id` : Modifier un formulaire
+- `POST /api/forms/:id/fields` : Ajouter un champ
+- `DELETE /api/forms/:id/fields/:fieldId` : Supprimer un champ
+
+### **5. presence/** - Enregistrement présence
+- `POST /api/presence` : Enregistrer une présence avec UUID
+- **Logique automatique :**
+  - Si formulaire = `simple_presence` → type `SIMPLE`
+  - Si formulaire = `arrival_departure` :
+    - Première fois du jour → `ARRIVAL`
+    - Deuxième fois → `DEPARTURE`
+
+### **6. admin/** - Dashboard Admin
+- `GET /api/admin/dashboard` : Stats globales
+- `GET /api/admin/users` : Liste paginée visiteurs
+- `GET /api/admin/presences` : Historique présences
+
+### **7. reports/** - Rapports et Stats
+- `GET /api/reports/daily` : Rapport journalier
+- `GET /api/reports/user/:userId` : Historique d'un visiteur
+- `GET /api/reports/export` : Export CSV/Excel
+
+---
+
+## ✅ Avantages de cette architecture
+
+### **1. Testabilité**
+Chaque layer peut être testé indépendamment :
+- Services testés sans Express
+- Controllers testés en mockant les services
+
+### **2. Réutilisabilité**
+Les utils, validators, errors sont réutilisables partout.
+
+### **3. Maintenabilité**
+Pour ajouter une fonctionnalité :
+1. Créer un nouveau module dans `modules/`
+2. Ajouter ses routes dans `app.ts`
+3. Aucun impact sur le code existant
+
+### **4. Clarté**
+En lisant la structure, on comprend immédiatement l'architecture.
+
+### **5. Scalabilité**
+Peut gérer des projets avec 50+ endpoints sans confusion.
+
+---
+
+## 🎨 Exemple concret : Enregistrement de présence
+
+### **1. Client envoie :**
+```json
+POST /api/presence
+{
+  "uuidCode": "BE-8F92GHT"
+}
+```
+
+### **2. Route (presence.routes.ts)**
+```typescript
+router.post('/', validate(createPresenceSchema), createPresenceController);
+```
+
+### **3. Middleware validate**
+Vérifie que `uuidCode` est bien fourni et valide.
+
+### **4. Controller (presence.controller.ts)**
+```typescript
+export const createPresenceController = async (req, res, next) => {
+  try {
+    const presence = await presenceService.recordPresence(req.body.uuidCode);
+    return successResponse(res, presence, 'Présence enregistrée', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+### **5. Service (presence.service.ts)**
+```typescript
+export const recordPresence = async (uuidCode: string) => {
+  // 1. Trouver l'utilisateur
+  const user = await prisma.user.findUnique({ where: { uuidCode } });
+  if (!user) throw new NotFoundError('UUID invalide');
+  
+  // 2. Déterminer le type (arrival/departure/simple)
+  const presenceType = await determinePresenceType(user.id);
+  
+  // 3. Créer la présence
+  return await prisma.presence.create({
+    data: { userId: user.id, presenceType, ... }
+  });
+};
+```
+
+### **6. Prisma → PostgreSQL**
+Exécute l'INSERT et retourne la donnée.
+
+### **7. Response au client**
+```json
+{
+  "success": true,
+  "message": "Présence enregistrée",
+  "data": {
+    "id": "...",
+    "presenceType": "ARRIVAL",
+    "timestamp": "2025-11-29T10:30:00Z"
+  }
+}
+```
+
+---
+
+## 🚀 Prochaines étapes
+
+1. **Créer la structure des dossiers**
+2. **Initialiser le projet Node.js**
+3. **Configurer Prisma**
+4. **Coder module par module**
+
+**Tu es prêt à mettre en place cette architecture ?**

@@ -1,0 +1,115 @@
+backend/
+│
+├── prisma/
+│   ├── schema.prisma              # Schéma de la base de données
+│   ├── seed.ts                    # Données initiales (admin par défaut, etc.)
+│   └── migrations/                # Migrations Prisma (auto-généré)
+│
+├── src/
+│   │
+│   ├── config/
+│   │   ├── database.ts            # Instance Prisma Client
+│   │   ├── env.ts                 # Validation variables d'environnement (Zod)
+│   │   └── constants.ts           # Constantes globales
+│   │
+│   ├── types/
+│   │   ├── express.d.ts           # Extension des types Express (req.user, etc.)
+│   │   └── index.ts               # Types personnalisés globaux
+│   │
+│   ├── utils/
+│   │   ├── uuid-generator.ts      # Générateur UUID personnalisé (BE-XXXXX)
+│   │   ├── password.util.ts       # Hash/Compare password (bcrypt)
+│   │   ├── jwt.util.ts            # Génération/Vérification JWT
+│   │   ├── response.util.ts       # Formattage réponses API standardisées
+│   │   └── date.util.ts           # Helpers pour dates/heures
+│   │
+│   ├── middlewares/
+│   │   ├── auth.middleware.ts     # Vérification JWT et rôles admin
+│   │   ├── validate.middleware.ts # Validation Zod des requêtes
+│   │   ├── error.middleware.ts    # Gestion globale des erreurs
+│   │   ├── notFound.middleware.ts # Route 404
+│   │   └── logger.middleware.ts   # Logger des requêtes
+│   │
+│   ├── validators/
+│   │   ├── auth.validator.ts      # Schémas Zod pour authentification
+│   │   ├── user.validator.ts      # Schémas Zod pour users
+│   │   ├── form.validator.ts      # Schémas Zod pour formulaires
+│   │   └── presence.validator.ts  # Schémas Zod pour présences
+│   │
+│   ├── modules/
+│   │   │
+│   │   ├── auth/                  # Module Authentification Admin
+│   │   │   ├── auth.routes.ts     # Routes: POST /api/auth/login, /register
+│   │   │   ├── auth.controller.ts # Controllers (req/res)
+│   │   │   ├── auth.service.ts    # Logique métier
+│   │   │   └── auth.types.ts      # Types spécifiques au module
+│   │   │
+│   │   ├── users/                 # Module Gestion Visiteurs
+│   │   │   ├── users.routes.ts    # Routes CRUD users
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.service.ts
+│   │   │   └── users.types.ts
+│   │   │
+│   │   ├── enrollment/            # Module Enrôlement (création visiteur)
+│   │   │   ├── enrollment.routes.ts
+│   │   │   ├── enrollment.controller.ts
+│   │   │   ├── enrollment.service.ts
+│   │   │   └── enrollment.types.ts
+│   │   │
+│   │   ├── forms/                 # Module Gestion Formulaires dynamiques
+│   │   │   ├── forms.routes.ts
+│   │   │   ├── forms.controller.ts
+│   │   │   ├── forms.service.ts
+│   │   │   ├── fields.controller.ts  # Gestion des champs
+│   │   │   ├── fields.service.ts
+│   │   │   └── forms.types.ts
+│   │   │
+│   │   ├── presence/              # Module Enregistrement Présence
+│   │   │   ├── presence.routes.ts
+│   │   │   ├── presence.controller.ts
+│   │   │   ├── presence.service.ts
+│   │   │   └── presence.types.ts
+│   │   │
+│   │   ├── admin/                 # Module Admin (dashboard, stats)
+│   │   │   ├── admin.routes.ts
+│   │   │   ├── admin.controller.ts
+│   │   │   ├── admin.service.ts
+│   │   │   └── admin.types.ts
+│   │   │
+│   │   └── reports/               # Module Rapports et Statistiques
+│   │       ├── reports.routes.ts
+│   │       ├── reports.controller.ts
+│   │       ├── reports.service.ts
+│   │       └── reports.types.ts
+│   │
+│   ├── shared/
+│   │   ├── errors/
+│   │   │   ├── AppError.ts        # Classe d'erreur personnalisée
+│   │   │   ├── BadRequestError.ts
+│   │   │   ├── NotFoundError.ts
+│   │   │   ├── UnauthorizedError.ts
+│   │   │   └── ValidationError.ts
+│   │   │
+│   │   └── interfaces/
+│   │       ├── IController.ts     # Interface pour controllers
+│   │       ├── IService.ts        # Interface pour services
+│   │       └── IPagination.ts     # Interface pour pagination
+│   │
+│   ├── app.ts                     # Configuration Express (middlewares, routes)
+│   └── server.ts                  # Point d'entrée (démarrage serveur)
+│
+├── tests/                         # Tests unitaires et d'intégration
+│   ├── unit/
+│   │   ├── services/
+│   │   └── utils/
+│   └── integration/
+│       └── api/
+│
+├── .env                           # Variables d'environnement
+├── .env.example                   # Template .env
+├── .gitignore
+├── package.json
+├── tsconfig.json
+├── nodemon.json                   # Config nodemon
+├── .eslintrc.json                 # Config ESLint (optionnel)
+└── README.md

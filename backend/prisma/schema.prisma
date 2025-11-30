@@ -1,0 +1,162 @@
+// This is the Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Énumérations
+enum UserTitle {
+  ETUDIANT
+  PROFESSIONNEL
+  ELEVE
+  AUTRE
+}
+
+enum UserStatus {
+  ACTIF
+  INACTIF
+}
+
+enum FormType {
+  SIMPLE_PRESENCE
+  ARRIVAL_DEPARTURE
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  CHECKBOX
+  TEXTAREA
+}
+
+enum PresenceType {
+  ARRIVAL
+  DEPARTURE
+  SIMPLE
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  MANAGER
+}
+
+// Modèle User (Visiteur)
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  uuidCode        String           @unique @map("uuid_code") // Ex: BE-8F92GHT
+  lastName        String           @map("last_name")
+  firstName       String           @map("first_name")
+  title           UserTitle
+  phone           String?
+  email           String?
+  status          UserStatus       @default(ACTIF)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  
+  // Relations
+  fieldValues     UserFieldValue[]
+  presences       Presence[]
+
+  @@map("users")
+}
+
+// Modèle FormTemplate (Formulaire défini par l'admin)
+model FormTemplate {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  type        FormType
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  fields      FieldTemplate[]
+  fieldValues UserFieldValue[]
+  presences   Presence[]
+  intervals   ArrivalDepartureInterval[]
+
+  @@map("form_templates")
+}
+
+// Modèle FieldTemplate (Champs d'un formulaire)
+model FieldTemplate {
+  id             String        @id @default(uuid()) @db.Uuid
+  formTemplateId String        @map("form_template_id") @db.Uuid
+  label          String
+  fieldType      FieldType     @map("field_type")
+  isRequired     Boolean       @default(false) @map("is_required")
+  options        Json?         // Pour les selects: ["option1", "option2"]
+  order          Int           @default(0)
+  
+  // Relations
+  formTemplate   FormTemplate  @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  fieldValues    UserFieldValue[]
+
+  @@map("field_templates")
+}
+
+// Modèle UserFieldValue (Valeurs des champs dynamiques)
+model UserFieldValue {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  fieldTemplateId String        @map("field_template_id") @db.Uuid
+  formTemplateId  String        @map("form_template_id") @db.Uuid
+  value           String
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fieldTemplate   FieldTemplate @relation(fields: [fieldTemplateId], references: [id], onDelete: Cascade)
+  formTemplate    FormTemplate  @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+
+  @@map("user_field_values")
+}
+
+// Modèle Presence (Présence enregistrée)
+model Presence {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  formTemplateId String        @map("form_template_id") @db.Uuid
+  presenceType   PresenceType  @map("presence_type")
+  timestamp      DateTime      @default(now())
+  
+  // Relations
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formTemplate   FormTemplate  @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+
+  @@map("presences")
+}
+
+// Modèle ArrivalDepartureInterval (Période de présence)
+model ArrivalDepartureInterval {
+  id             String        @id @default(uuid()) @db.Uuid
+  formTemplateId String        @map("form_template_id") @db.Uuid
+  startTime      String        @map("start_time") // Format: "07:45"
+  endTime        String        @map("end_time")   // Format: "18:30"
+  createdAt      DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  formTemplate   FormTemplate  @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+
+  @@map("arrival_departure_intervals")
+}
+
+// Modèle AdminUser
+model AdminUser {
+  id           String      @id @default(uuid()) @db.Uuid
+  username     String      @unique
+  passwordHash String      @map("password_hash")
+  role         AdminRole
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  @@map("admin_users")
+}

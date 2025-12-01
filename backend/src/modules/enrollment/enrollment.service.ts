@@ -12,6 +12,7 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
     where: { id: data.formTemplateId },
     include: {
       fields: true,
+      tenant: true,  // ← NOUVEAU : Récupérer le tenant du formulaire
     },
   });
 
@@ -22,6 +23,9 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
   if (!formTemplate.active) {
     throw new BadRequestError('Form template is not active');
   }
+
+  // Le tenantId est déduit du formulaire choisi
+  const tenantId = formTemplate.tenantId;
 
   // 2. Valider que tous les champs requis sont fournis
   const requiredFields = formTemplate.fields.filter((f) => f.isRequired);
@@ -46,9 +50,10 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
 
   // 5. Créer l'utilisateur avec ses valeurs de champs (transaction)
   const user = await prisma.$transaction(async (tx) => {
-    // Créer l'utilisateur
+    // Créer l'utilisateur avec le tenantId du formulaire
     const newUser = await tx.user.create({
       data: {
+        tenantId,  // ← Déduit du formulaire
         uuidCode,
         lastName: data.lastName,
         firstName: data.firstName,

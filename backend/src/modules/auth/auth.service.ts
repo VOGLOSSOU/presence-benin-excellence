@@ -13,6 +13,9 @@ export const loginService = async (data: LoginRequest): Promise<AuthResponse> =>
   // Vérifier si l'admin existe
   const admin = await prisma.adminUser.findUnique({
     where: { username },
+    include: {
+      tenant: true,
+    },
   });
 
   if (!admin) {
@@ -26,11 +29,12 @@ export const loginService = async (data: LoginRequest): Promise<AuthResponse> =>
     throw new UnauthorizedError('Invalid credentials');
   }
 
-  // Générer le token JWT
+  // Générer le token JWT avec tenantId
   const token = generateToken({
     id: admin.id,
     username: admin.username,
     role: admin.role,
+    tenantId: admin.tenantId,
   });
 
   return {
@@ -45,9 +49,11 @@ export const loginService = async (data: LoginRequest): Promise<AuthResponse> =>
 
 /**
  * Service d'enregistrement d'un nouvel admin
+ * NOTE : requiredTenantId est fourni par le controller depuis req.user.tenantId
  */
 export const registerService = async (
-  data: RegisterRequest
+  data: RegisterRequest,
+  requiredTenantId: string
 ): Promise<AuthResponse> => {
   const { username, password, role } = data;
 
@@ -63,20 +69,22 @@ export const registerService = async (
   // Hasher le mot de passe
   const passwordHash = await hashPassword(password);
 
-  // Créer l'admin
+  // Créer l'admin avec le tenantId
   const admin = await prisma.adminUser.create({
     data: {
       username,
       passwordHash,
       role,
+      tenantId: requiredTenantId,
     },
   });
 
-  // Générer le token JWT
+  // Générer le token JWT avec tenantId
   const token = generateToken({
     id: admin.id,
     username: admin.username,
     role: admin.role,
+    tenantId: admin.tenantId,
   });
 
   return {

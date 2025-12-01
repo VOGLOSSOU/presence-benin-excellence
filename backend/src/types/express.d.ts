@@ -9,6 +9,7 @@ declare global {
         id: string;
         username: string;
         role: AdminRole;
+        tenantId: string;  // ← NOUVEAU
       };
     }
   }

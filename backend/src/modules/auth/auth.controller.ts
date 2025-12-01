@@ -20,6 +20,7 @@ export const loginController = async (
   }
 };
 
+
 /**
  * Controller d'enregistrement d'un admin
  * POST /api/auth/register
@@ -30,7 +31,10 @@ export const registerController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await registerService(req.body);
+    // L'admin créé hérite du tenant de celui qui le crée
+    const tenantId = (req as any).user.tenantId;
+    
+    const result = await registerService(req.body, tenantId);
     successResponse(res, result, 'Admin created successfully', HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);

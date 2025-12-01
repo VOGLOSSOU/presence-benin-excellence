@@ -13,6 +13,7 @@ export const enrollUserController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Le tenantId est automatiquement déduit du formTemplateId dans le service
     const result = await enrollUserService(req.body);
     successResponse(res, result, result.message, HTTP_STATUS.CREATED);
   } catch (error) {

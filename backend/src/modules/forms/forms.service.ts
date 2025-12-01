@@ -5,9 +5,10 @@ import { CreateFormRequest, UpdateFormRequest, CreateIntervalRequest } from './f
 /**
  * Créer un nouveau formulaire
  */
-export const createFormService = async (data: CreateFormRequest) => {
+export const createFormService = async (data: CreateFormRequest, tenantId: string) => {
   const form = await prisma.formTemplate.create({
     data: {
+      tenantId,  // ← NOUVEAU
       name: data.name,
       description: data.description,
       type: data.type,
@@ -23,10 +24,11 @@ export const createFormService = async (data: CreateFormRequest) => {
 };
 
 /**
- * Obtenir tous les formulaires
+ * Obtenir tous les formulaires du tenant
  */
-export const getAllFormsService = async () => {
+export const getAllFormsService = async (tenantId: string) => {
   const forms = await prisma.formTemplate.findMany({
+    where: { tenantId },  // ← NOUVEAU : Filtrer par tenant
     include: {
       fields: {
         orderBy: { order: 'asc' },
@@ -47,9 +49,12 @@ export const getAllFormsService = async () => {
 /**
  * Obtenir un formulaire par ID
  */
-export const getFormByIdService = async (id: string) => {
-  const form = await prisma.formTemplate.findUnique({
-    where: { id },
+export const getFormByIdService = async (id: string, tenantId: string) => {
+  const form = await prisma.formTemplate.findFirst({
+    where: { 
+      id,
+      tenantId,  // ← NOUVEAU : Vérifier que c'est bien le bon tenant
+    },
     include: {
       fields: {
         orderBy: { order: 'asc' },
@@ -68,9 +73,9 @@ export const getFormByIdService = async (id: string) => {
 /**
  * Mettre à jour un formulaire
  */
-export const updateFormService = async (id: string, data: UpdateFormRequest) => {
-  // Vérifier que le formulaire existe
-  await getFormByIdService(id);
+export const updateFormService = async (id: string, data: UpdateFormRequest, tenantId: string) => {
+  // Vérifier que le formulaire existe et appartient au tenant
+  await getFormByIdService(id, tenantId);
 
   const updatedForm = await prisma.formTemplate.update({
     where: { id },
@@ -89,9 +94,9 @@ export const updateFormService = async (id: string, data: UpdateFormRequest) => 
 /**
  * Supprimer un formulaire
  */
-export const deleteFormService = async (id: string) => {
-  // Vérifier que le formulaire existe
-  await getFormByIdService(id);
+export const deleteFormService = async (id: string, tenantId: string) => {
+  // Vérifier que le formulaire existe et appartient au tenant
+  await getFormByIdService(id, tenantId);
 
   await prisma.formTemplate.delete({
     where: { id },
@@ -103,9 +108,9 @@ export const deleteFormService = async (id: string) => {
 /**
  * Créer un intervalle pour un formulaire arrival/departure
  */
-export const createIntervalService = async (formId: string, data: CreateIntervalRequest) => {
-  // Vérifier que le formulaire existe
-  const form = await getFormByIdService(formId);
+export const createIntervalService = async (formId: string, data: CreateIntervalRequest, tenantId: string) => {
+  // Vérifier que le formulaire existe et appartient au tenant
+  const form = await getFormByIdService(formId, tenantId);
 
   // Vérifier que c'est un formulaire arrival/departure
   if (form.type !== 'ARRIVAL_DEPARTURE') {

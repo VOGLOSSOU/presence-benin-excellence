@@ -29,6 +29,7 @@ export const authenticate = async (
       id: decoded.id,
       username: decoded.username,
       role: decoded.role as AdminRole,
+      tenantId: decoded.tenantId,  // ← NOUVEAU
     };
     
     next();

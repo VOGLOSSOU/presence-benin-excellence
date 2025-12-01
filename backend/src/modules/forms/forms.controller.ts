@@ -20,7 +20,8 @@ export const createFormController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const form = await createFormService(req.body);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const form = await createFormService(req.body, tenantId);
     successResponse(res, form, MESSAGES.CREATED, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
@@ -32,12 +33,13 @@ export const createFormController = async (
  * GET /api/forms
  */
 export const getAllFormsController = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const forms = await getAllFormsService();
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const forms = await getAllFormsService(tenantId);
     successResponse(res, forms, MESSAGES.SUCCESS);
   } catch (error) {
     next(error);
@@ -54,7 +56,8 @@ export const getFormByIdController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const form = await getFormByIdService(req.params.id);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const form = await getFormByIdService(req.params.id, tenantId);
     successResponse(res, form, MESSAGES.SUCCESS);
   } catch (error) {
     next(error);
@@ -71,7 +74,8 @@ export const updateFormController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const form = await updateFormService(req.params.id, req.body);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const form = await updateFormService(req.params.id, req.body, tenantId);
     successResponse(res, form, MESSAGES.UPDATED);
   } catch (error) {
     next(error);
@@ -88,7 +92,8 @@ export const deleteFormController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await deleteFormService(req.params.id);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const result = await deleteFormService(req.params.id, tenantId);
     successResponse(res, result, MESSAGES.DELETED);
   } catch (error) {
     next(error);
@@ -105,7 +110,8 @@ export const createIntervalController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const interval = await createIntervalService(req.params.id, req.body);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const interval = await createIntervalService(req.params.id, req.body, tenantId);
     successResponse(res, interval, 'Interval created successfully', HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);

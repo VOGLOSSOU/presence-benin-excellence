@@ -6,9 +6,9 @@ import { getFormByIdService } from './forms.service';
 /**
  * Ajouter un champ à un formulaire
  */
-export const addFieldService = async (formId: string, data: CreateFieldRequest) => {
-  // Vérifier que le formulaire existe
-  await getFormByIdService(formId);
+export const addFieldService = async (formId: string, data: CreateFieldRequest, tenantId: string) => {
+  // Vérifier que le formulaire existe et appartient au tenant
+  await getFormByIdService(formId, tenantId);
 
   const field = await prisma.fieldTemplate.create({
     data: {
@@ -27,9 +27,9 @@ export const addFieldService = async (formId: string, data: CreateFieldRequest) 
 /**
  * Obtenir tous les champs d'un formulaire
  */
-export const getFieldsByFormIdService = async (formId: string) => {
-  // Vérifier que le formulaire existe
-  await getFormByIdService(formId);
+export const getFieldsByFormIdService = async (formId: string, tenantId: string) => {
+  // Vérifier que le formulaire existe et appartient au tenant
+  await getFormByIdService(formId, tenantId);
 
   const fields = await prisma.fieldTemplate.findMany({
     where: { formTemplateId: formId },
@@ -42,13 +42,21 @@ export const getFieldsByFormIdService = async (formId: string) => {
 /**
  * Mettre à jour un champ
  */
-export const updateFieldService = async (fieldId: string, data: UpdateFieldRequest) => {
+export const updateFieldService = async (fieldId: string, data: UpdateFieldRequest, tenantId: string) => {
   // Vérifier que le champ existe
   const existingField = await prisma.fieldTemplate.findUnique({
     where: { id: fieldId },
+    include: {
+      formTemplate: true,
+    },
   });
 
   if (!existingField) {
+    throw new NotFoundError('Field template not found');
+  }
+
+  // Vérifier que le formulaire appartient au tenant
+  if (existingField.formTemplate.tenantId !== tenantId) {
     throw new NotFoundError('Field template not found');
   }
 
@@ -69,13 +77,21 @@ export const updateFieldService = async (fieldId: string, data: UpdateFieldReque
 /**
  * Supprimer un champ
  */
-export const deleteFieldService = async (fieldId: string) => {
+export const deleteFieldService = async (fieldId: string, tenantId: string) => {
   // Vérifier que le champ existe
   const existingField = await prisma.fieldTemplate.findUnique({
     where: { id: fieldId },
+    include: {
+      formTemplate: true,
+    },
   });
 
   if (!existingField) {
+    throw new NotFoundError('Field template not found');
+  }
+
+  // Vérifier que le formulaire appartient au tenant
+  if (existingField.formTemplate.tenantId !== tenantId) {
     throw new NotFoundError('Field template not found');
   }
 

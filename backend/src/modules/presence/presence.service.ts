@@ -9,11 +9,15 @@ import { PresenceType } from '@prisma/client';
  */
 const determinePresenceType = async (
   userId: string,
-  formTemplateId: string
+  formTemplateId: string,
+  tenantId: string
 ): Promise<PresenceType> => {
   // Récupérer le formulaire avec son type et intervalles
-  const formTemplate = await prisma.formTemplate.findUnique({
-    where: { id: formTemplateId },
+  const formTemplate = await prisma.formTemplate.findFirst({
+    where: { 
+      id: formTemplateId,
+      tenantId,  // ← NOUVEAU : Vérifier le tenant
+    },
     include: { intervals: true },
   });
 
@@ -36,6 +40,7 @@ const determinePresenceType = async (
     where: {
       userId,
       formTemplateId,
+      tenantId,  // ← NOUVEAU : Filtrer par tenant
       timestamp: {
         gte: startOfDay,
         lte: endOfDay,
@@ -79,14 +84,20 @@ export const recordPresenceService = async (data: RecordPresenceRequest) => {
     throw new NotFoundError('User not found with this UUID');
   }
 
-  // 2. Vérifier que le formulaire existe et est actif
-  const formTemplate = await prisma.formTemplate.findUnique({
-    where: { id: data.formTemplateId },
+  // Le tenantId est celui de l'utilisateur
+  const tenantId = user.tenantId;
+
+  // 2. Vérifier que le formulaire existe, est actif ET appartient au même tenant
+  const formTemplate = await prisma.formTemplate.findFirst({
+    where: { 
+      id: data.formTemplateId,
+      tenantId,  // ← NOUVEAU : Le formulaire doit appartenir au même tenant que l'utilisateur
+    },
     include: { intervals: true },
   });
 
   if (!formTemplate) {
-    throw new NotFoundError('Form template not found');
+    throw new NotFoundError('Form template not found or does not belong to your organization');
   }
 
   if (!formTemplate.active) {
@@ -106,11 +117,12 @@ export const recordPresenceService = async (data: RecordPresenceRequest) => {
   }
 
   // 4. Déterminer le type de présence
-  const presenceType = await determinePresenceType(user.id, data.formTemplateId);
+  const presenceType = await determinePresenceType(user.id, data.formTemplateId, tenantId);
 
-  // 5. Enregistrer la présence
+  // 5. Enregistrer la présence avec tenantId
   const presence = await prisma.presence.create({
     data: {
+      tenantId,  // ← NOUVEAU
       userId: user.id,
       formTemplateId: data.formTemplateId,
       presenceType,
@@ -160,9 +172,14 @@ export const getUserPresencesService = async (uuidCode: string) => {
     throw new NotFoundError('User not found with this UUID');
   }
 
-  // Récupérer les présences
+  const tenantId = user.tenantId;
+
+  // Récupérer les présences du tenant de l'utilisateur
   const presences = await prisma.presence.findMany({
-    where: { userId: user.id },
+    where: { 
+      userId: user.id,
+      tenantId,  // ← NOUVEAU : Filtrer par tenant
+    },
     include: {
       formTemplate: {
         select: {

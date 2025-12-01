@@ -18,7 +18,8 @@ export const addFieldController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const field = await addFieldService(req.params.id, req.body);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const field = await addFieldService(req.params.id, req.body, tenantId);
     successResponse(res, field, 'Field added successfully', HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
@@ -35,7 +36,8 @@ export const getFieldsByFormIdController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const fields = await getFieldsByFormIdService(req.params.id);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const fields = await getFieldsByFormIdService(req.params.id, tenantId);
     successResponse(res, fields, MESSAGES.SUCCESS);
   } catch (error) {
     next(error);
@@ -52,7 +54,8 @@ export const updateFieldController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const field = await updateFieldService(req.params.fieldId, req.body);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const field = await updateFieldService(req.params.fieldId, req.body, tenantId);
     successResponse(res, field, MESSAGES.UPDATED);
   } catch (error) {
     next(error);
@@ -69,7 +72,8 @@ export const deleteFieldController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await deleteFieldService(req.params.fieldId);
+    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
+    const result = await deleteFieldService(req.params.fieldId, tenantId);
     successResponse(res, result, MESSAGES.DELETED);
   } catch (error) {
     next(error);

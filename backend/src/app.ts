@@ -49,6 +49,7 @@ import authRoutes from './modules/auth/auth.routes';
 import formsRoutes from './modules/forms/forms.routes';
 import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 import presenceRoutes from './modules/presence/presence.routes';
+import setupRoutes from './modules/setup/setup.routes';
 // import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 // import presenceRoutes from './modules/presence/presence.routes';
 // import formsRoutes from './modules/forms/forms.routes';
@@ -60,6 +61,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/forms', formsRoutes);
 app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/presence', presenceRoutes);
+app.use('/api/setup', setupRoutes);
 
 // app.use('/api/enrollment', enrollmentRoutes);
 // app.use('/api/presence', presenceRoutes);

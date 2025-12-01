@@ -29,13 +29,18 @@ export const loginService = async (data: LoginRequest): Promise<AuthResponse> =>
     throw new UnauthorizedError('Invalid credentials');
   }
 
-  // Générer le token JWT avec tenantId
-  const token = generateToken({
+  // Générer le token JWT (tenantId optionnel pour SYSTEM_ADMIN)
+  const tokenPayload: any = {
     id: admin.id,
     username: admin.username,
     role: admin.role,
-    tenantId: admin.tenantId,
-  });
+  };
+
+  if (admin.tenantId) {
+    tokenPayload.tenantId = admin.tenantId;
+  }
+
+  const token = generateToken(tokenPayload);
 
   return {
     admin: {
@@ -79,13 +84,18 @@ export const registerService = async (
     },
   });
 
-  // Générer le token JWT avec tenantId
-  const token = generateToken({
+  // Générer le token JWT (tenantId optionnel pour SYSTEM_ADMIN)
+  const tokenPayload: any = {
     id: admin.id,
     username: admin.username,
     role: admin.role,
-    tenantId: admin.tenantId,
-  });
+  };
+
+  if (admin.tenantId) {
+    tokenPayload.tenantId = admin.tenantId;
+  }
+
+  const token = generateToken(tokenPayload);
 
   return {
     admin: {

@@ -6,6 +6,28 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
+  // Créer le system admin (super utilisateur)
+  console.log('👑 Creating system admin...');
+
+  const systemPassword = 'System@123';
+  const systemPasswordHash = await bcrypt.hash(systemPassword, 10);
+
+  const systemAdmin = await prisma.adminUser.upsert({
+    where: { username: 'system_admin' },
+    update: {},
+    create: {
+      username: 'system_admin',
+      passwordHash: systemPasswordHash,
+      role: AdminRole.SYSTEM_ADMIN,
+      // tenantId: null (optionnel pour SYSTEM_ADMIN)
+    },
+  });
+
+  console.log('✅ System admin created:');
+  console.log('  - Username: system_admin');
+  console.log('  - Password:', systemPassword);
+  console.log('  - Role: SYSTEM_ADMIN');
+
   // Créer les tenants
   console.log('📍 Creating tenants...');
   

@@ -6,7 +6,7 @@ export interface JWTPayload {
   id: string;
   username: string;
   role: string;
-  tenantId: string;  // ← NOUVEAU
+  tenantId?: string;  // ← OPTIONNEL pour SYSTEM_ADMIN
 }
 
 /**

@@ -3,6 +3,8 @@
 export const UUID_PREFIX = 'BE-';
 export const UUID_LENGTH = 7; // Longueur du code après "BE-"
 
+export const TENANT_CODE_PREFIX = 'BE-';
+
 export const PASSWORD_MIN_LENGTH = 6;
 export const PASSWORD_SALT_ROUNDS = 10;
 

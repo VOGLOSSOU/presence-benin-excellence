@@ -65,3 +65,8 @@ export const requireRole = (...allowedRoles: AdminRole[]) => {
  * Middleware pour vérifier que l'utilisateur est un super admin
  */
 export const requireSuperAdmin = requireRole(AdminRole.SUPER_ADMIN);
+
+/**
+ * Middleware pour vérifier que l'utilisateur est un system admin
+ */
+export const requireSystemAdmin = requireRole(AdminRole.SYSTEM_ADMIN);

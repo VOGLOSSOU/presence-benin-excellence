@@ -43,6 +43,7 @@ enum PresenceType {
 }
 
 enum AdminRole {
+  SYSTEM_ADMIN
   SUPER_ADMIN
   MANAGER
 }
@@ -178,14 +179,14 @@ model ArrivalDepartureInterval {
 // Modèle AdminUser
 model AdminUser {
   id           String      @id @default(uuid()) @db.Uuid
-  tenantId     String      @map("tenant_id") @db.Uuid
+  tenantId     String?     @map("tenant_id") @db.Uuid  // Optionnel pour SYSTEM_ADMIN
   username     String      @unique
   passwordHash String      @map("password_hash")
   role         AdminRole
   createdAt    DateTime    @default(now()) @map("created_at")
-  
+
   // Relations
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("admin_users")
 }

@@ -1,10 +1,69 @@
-# 📚 Documentation API - BENIN EXCELLENCE Système de Présence
+#  Documentation API -
+
+**Version :** 2.1 (Multi-Tenant Dynamique)
 
 **Base URL :** `http://localhost:5000`
 
 **Format :** JSON
 
 **Authentification :** Bearer Token (JWT)
+
+---
+
+##  Architecture Multi-Tenant Dynamique
+
+### Concept
+
+Le système utilise une architecture **multi-tenant dynamique** qui permet :
+- **Création illimitée d'organisations** sans redéploiement
+- **Isolation totale** des données entre organisations
+- **Rôles hiérarchisés** : SYSTEM_ADMIN > SUPER_ADMIN > MANAGER
+- **Chaque admin appartient à un tenant** et ne voit que les données de son organisation
+- **Chaque visiteur est enrôlé dans un tenant** spécifique
+
+### Hiérarchie des Rôles
+
+```
+SYSTEM_ADMIN (Toi - Propriétaire)
+├── Crée des organisations
+└── Contrôle global
+
+SUPER_ADMIN (Chef d'organisation)
+├── Gère son tenant
+├── Crée des formulaires
+├── Crée des MANAGER
+└── Contrôle total de son organisation
+
+MANAGER (Employé)
+├── Voit les données
+├── Gère les utilisateurs
+└── Droits de lecture/écriture limités
+```
+
+### Modèle de données
+
+```
+SYSTEM_ADMIN
+├── Crée → Tenant (Organisation/Siège)
+    ├── AdminUser (SUPER_ADMIN, MANAGER)
+    ├── FormTemplate (Formulaires)
+    ├── User (Visiteurs)
+    └── Presence (Présences)
+```
+
+**Exemple concret :**
+- **SYSTEM_ADMIN** : `system_admin` (Toi)
+  - Crée **Tenant 1** : BENIN EXCELLENCE Cotonou
+    - **SUPER_ADMIN** : `admin_cotonou`
+    - Formulaires : "Formulaire Étudiant Cotonou"
+    - Visiteurs : Nathan, Alice, etc.
+
+  - Crée **Tenant 2** : BENIN EXCELLENCE Porto-Novo
+    - **SUPER_ADMIN** : `admin_porto`
+    - Formulaires : "Formulaire Professionnel Porto-Novo"
+    - Visiteurs : Bob, Claire, etc.
+
+**Isolation :** admin_cotonou ne peut PAS voir les données de Porto-Novo, et vice-versa.
 
 ---
 
@@ -16,11 +75,32 @@
 
 **Authentification :** Non requise
 
+**Comptes par défaut (via seed) :**
+```json
+// SYSTEM_ADMIN (Toi - propriétaire)
+{
+  "username": "system_admin",
+  "password": "System@123"
+}
+
+// SUPER_ADMIN Cotonou
+{
+  "username": "admin_cotonou",
+  "password": "Admin@123"
+}
+
+// SUPER_ADMIN Porto-Novo
+{
+  "username": "admin_porto",
+  "password": "Admin@123"
+}
+```
+
 **Body :**
 ```json
 {
-  "username": "admin",
-  "password": "Admin@123"
+  "username": "system_admin",
+  "password": "System@123"
 }
 ```
 
@@ -31,22 +111,33 @@
   "message": "Login successful",
   "data": {
     "admin": {
-      "id": "ac38251e-3e7a-45a9-8ab4-44756628cd78",
-      "username": "admin",
-      "role": "SUPER_ADMIN"
+      "id": "3f3a80f0-9aa3-44bd-b597-27d65db3ad9f",
+      "username": "system_admin",
+      "role": "SYSTEM_ADMIN"
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   },
-  "timestamp": "2025-11-30T06:20:22.799Z"
+  "timestamp": "2025-12-01T04:47:14.539Z"
 }
 ```
+
+**Important :** Le token JWT contient :
+- `id` : ID de l'admin
+- `username` : Nom d'utilisateur
+- `role` : Rôle (SYSTEM_ADMIN, SUPER_ADMIN, ou MANAGER)
+- **`tenantId`** : ID du tenant (optionnel pour SYSTEM_ADMIN) ⚠️
+
+**Rôles disponibles :**
+- `SYSTEM_ADMIN` : Contrôle total, crée des organisations
+- `SUPER_ADMIN` : Gère son organisation, crée des MANAGER
+- `MANAGER` : Droits limités dans son organisation
 
 **Erreur (401 Unauthorized) :**
 ```json
 {
   "success": false,
   "message": "Invalid credentials",
-  "timestamp": "2025-11-30T06:20:37.370Z"
+  "timestamp": "2025-12-01T..."
 }
 ```
 
@@ -67,11 +158,19 @@ Content-Type: application/json
 **Body :**
 ```json
 {
-  "username": "manager1",
-  "password": "Password123",
+  "username": "manager_cotonou",
+  "password": "Manager@123",
   "role": "MANAGER"
 }
 ```
+
+**Rôles possibles :**
+- `SUPER_ADMIN` : Tous les droits dans son organisation
+- `MANAGER` : Droits limités dans son organisation
+
+**Comportement Multi-Tenant :**
+- Le nouvel admin **hérite du tenant** de l'admin qui le crée
+- Un admin de Cotonou ne peut créer que des admins pour Cotonou
 
 **Réponse (201 Created) :**
 ```json
@@ -81,18 +180,102 @@ Content-Type: application/json
   "data": {
     "admin": {
       "id": "...",
-      "username": "manager1",
+      "username": "manager_cotonou",
       "role": "MANAGER"
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   },
-  "timestamp": "2025-11-30T..."
+  "timestamp": "2025-12-01T..."
+}
+```
+
+---
+
+## 🏗️ Module Setup (Création d'Organisations)
+
+**Important :** Ce module permet la création dynamique d'organisations sans redéploiement.
+
+### 1. Créer une Nouvelle Organisation
+
+**Endpoint :** `POST /api/setup/organization`
+
+**Authentification :** Bearer Token (SYSTEM_ADMIN uniquement)
+
+**Headers :**
+```
+Authorization: Bearer {token_system_admin}
+Content-Type: application/json
+```
+
+**Body :**
+```json
+{
+  "organizationName": "BENIN EXCELLENCE Parakou",
+  "adminUsername": "admin_parakou",
+  "adminPassword": "SecurePass123",
+  "adminEmail": "admin@parakou.be"
+}
+```
+
+**Comportement :**
+1. ✅ **Génère automatiquement** le code tenant : `BE-PARAKOU`
+2. ✅ **Crée le tenant** avec le nom de l'organisation
+3. ✅ **Crée un SUPER_ADMIN** lié au tenant
+4. ✅ **Transaction atomique** : tout ou rien
+
+**Réponse (201 Created) :**
+```json
+{
+  "success": true,
+  "message": "Organization created successfully",
+  "data": {
+    "tenant": {
+      "id": "a1b2c3d4-...",
+      "name": "BENIN EXCELLENCE Parakou",
+      "code": "BE-PARAKOU"
+    },
+    "admin": {
+      "id": "e5f6g7h8-...",
+      "username": "admin_parakou",
+      "role": "SUPER_ADMIN"
+    },
+    "credentials": {
+      "username": "admin_parakou",
+      "password": "SecurePass123"
+    }
+  },
+  "timestamp": "2025-12-01T..."
+}
+```
+
+**Erreur (409 Conflict) :**
+```json
+{
+  "success": false,
+  "message": "An organization with this name already exists",
+  "timestamp": "2025-12-01T..."
+}
+```
+
+**Erreur (403 Forbidden) :**
+```json
+{
+  "success": false,
+  "message": "Insufficient permissions",
+  "timestamp": "2025-12-01T..."
 }
 ```
 
 ---
 
 ## 📋 Module Forms (Formulaires)
+
+**Important Multi-Tenant :**
+- Chaque formulaire est **lié au tenant** de l'admin qui le crée
+- Un admin ne voit QUE les formulaires de son tenant
+- Les visiteurs ne peuvent s'enrôler qu'avec les formulaires de leur tenant
+
+---
 
 ### 1. Créer un Formulaire
 
@@ -109,15 +292,15 @@ Content-Type: application/json
 **Body :**
 ```json
 {
-  "name": "Formulaire Étudiant",
-  "description": "Pour les étudiants universitaires",
+  "name": "Formulaire Étudiant Cotonou",
+  "description": "Pour les étudiants de Cotonou",
   "type": "ARRIVAL_DEPARTURE",
   "active": true
 }
 ```
 
 **Types possibles :**
-- `SIMPLE_PRESENCE` : Présence simple (un seul clic)
+- `SIMPLE_PRESENCE` : Présence simple (illimité)
 - `ARRIVAL_DEPARTURE` : Arrivée/Départ (avec intervalle horaire)
 
 **Réponse (201 Created) :**
@@ -126,19 +309,22 @@ Content-Type: application/json
   "success": true,
   "message": "Resource created successfully",
   "data": {
-    "id": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-    "name": "Formulaire Étudiant",
-    "description": "Pour les étudiants universitaires",
+    "id": "6a447cc1-118f-4fbb-872d-95067038c520",
+    "tenantId": "c5d0cc0e-f2d1-4c22-8b28-a7e97a8b2302",
+    "name": "Formulaire Étudiant Cotonou",
+    "description": "Pour les étudiants de Cotonou",
     "type": "ARRIVAL_DEPARTURE",
     "active": true,
-    "createdAt": "2025-11-30T07:26:27.256Z",
-    "updatedAt": "2025-11-30T07:26:27.256Z",
+    "createdAt": "2025-12-01T09:52:23.081Z",
+    "updatedAt": "2025-12-01T09:52:23.081Z",
     "fields": [],
     "intervals": []
   },
-  "timestamp": "2025-11-30T07:26:27.281Z"
+  "timestamp": "2025-12-01T09:52:23.109Z"
 }
 ```
+
+**Note :** Le `tenantId` est automatiquement déduit du token de l'admin connecté.
 
 ---
 
@@ -160,13 +346,14 @@ Authorization: Bearer {token}
   "message": "Operation successful",
   "data": [
     {
-      "id": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-      "name": "Formulaire Étudiant",
-      "description": "Pour les étudiants universitaires",
+      "id": "6a447cc1-118f-4fbb-872d-95067038c520",
+      "tenantId": "c5d0cc0e-f2d1-4c22-8b28-a7e97a8b2302",
+      "name": "Formulaire Étudiant Cotonou",
+      "description": "Pour les étudiants de Cotonou",
       "type": "ARRIVAL_DEPARTURE",
       "active": true,
-      "createdAt": "2025-11-30T07:26:27.256Z",
-      "updatedAt": "2025-11-30T07:26:27.256Z",
+      "createdAt": "2025-12-01T09:52:23.081Z",
+      "updatedAt": "2025-12-01T09:52:23.081Z",
       "fields": [...],
       "intervals": [...],
       "_count": {
@@ -174,9 +361,11 @@ Authorization: Bearer {token}
       }
     }
   ],
-  "timestamp": "2025-11-30T..."
+  "timestamp": "2025-12-01T10:18:35.904Z"
 }
 ```
+
+**Important :** L'admin ne voit QUE les formulaires de son tenant.
 
 ---
 
@@ -186,71 +375,14 @@ Authorization: Bearer {token}
 
 **Authentification :** Bearer Token
 
-**Headers :**
-```
-Authorization: Bearer {token}
-```
-
 **Exemple :**
 ```
-GET /api/forms/df4daf3e-5eba-4044-82d4-1de8d05bb1b9
+GET /api/forms/6a447cc1-118f-4fbb-872d-95067038c520
 ```
 
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": {
-    "id": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-    "name": "Formulaire Étudiant",
-    "description": "Pour les étudiants universitaires",
-    "type": "ARRIVAL_DEPARTURE",
-    "active": true,
-    "createdAt": "2025-11-30T07:26:27.256Z",
-    "updatedAt": "2025-11-30T07:26:27.256Z",
-    "fields": [
-      {
-        "id": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "label": "Université",
-        "fieldType": "TEXT",
-        "isRequired": true,
-        "options": null,
-        "order": 1
-      },
-      {
-        "id": "ef94dd4d-3411-4aa3-8a17-4d84bf0f0eda",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "label": "Filière",
-        "fieldType": "SELECT",
-        "isRequired": true,
-        "options": ["Informatique", "Gestion", "Droit", "Médecine"],
-        "order": 2
-      },
-      {
-        "id": "545985e6-72a8-4ae5-a943-d45bae084886",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "label": "Année d'études",
-        "fieldType": "NUMBER",
-        "isRequired": true,
-        "options": null,
-        "order": 3
-      }
-    ],
-    "intervals": [
-      {
-        "id": "18a5df91-8923-4e84-be0c-483b4a524a2b",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "startTime": "08:00",
-        "endTime": "17:00",
-        "createdAt": "2025-11-30T07:33:29.730Z"
-      }
-    ]
-  },
-  "timestamp": "2025-11-30T07:34:29.480Z"
-}
-```
+**Comportement Multi-Tenant :**
+- Retourne le formulaire SEULEMENT s'il appartient au tenant de l'admin
+- Erreur 404 si le formulaire appartient à un autre tenant
 
 ---
 
@@ -260,34 +392,12 @@ GET /api/forms/df4daf3e-5eba-4044-82d4-1de8d05bb1b9
 
 **Authentification :** Bearer Token (SUPER_ADMIN uniquement)
 
-**Headers :**
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
 **Body (tous les champs sont optionnels) :**
 ```json
 {
-  "name": "Formulaire Étudiant (Modifié)",
+  "name": "Formulaire Étudiant Cotonou (Modifié)",
   "description": "Nouvelle description",
   "active": false
-}
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Resource updated successfully",
-  "data": {
-    "id": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-    "name": "Formulaire Étudiant (Modifié)",
-    "description": "Nouvelle description",
-    "active": false,
-    ...
-  },
-  "timestamp": "2025-11-30T..."
 }
 ```
 
@@ -299,38 +409,19 @@ Content-Type: application/json
 
 **Authentification :** Bearer Token (SUPER_ADMIN uniquement)
 
-**Headers :**
-```
-Authorization: Bearer {token}
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Resource deleted successfully",
-  "data": {
-    "message": "Form template deleted successfully"
-  },
-  "timestamp": "2025-11-30T..."
-}
-```
-
 ---
 
 ## 📝 Module Fields (Champs de Formulaire)
 
-### 1. Ajouter un Champ à un Formulaire
+Les champs suivent la même logique multi-tenant que les formulaires.
+
+---
+
+### 1. Ajouter un Champ
 
 **Endpoint :** `POST /api/forms/{formId}/fields`
 
 **Authentification :** Bearer Token (SUPER_ADMIN uniquement)
-
-**Headers :**
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
 
 **Body :**
 ```json
@@ -342,157 +433,16 @@ Content-Type: application/json
 }
 ```
 
-**Types de champs possibles :**
-- `TEXT` : Texte simple
-- `NUMBER` : Nombre
-- `DATE` : Date
-- `SELECT` : Liste déroulante (nécessite `options`)
-- `CHECKBOX` : Case à cocher
-- `TEXTAREA` : Texte long
-
-**Exemple avec SELECT :**
-```json
-{
-  "label": "Filière",
-  "fieldType": "SELECT",
-  "isRequired": true,
-  "options": ["Informatique", "Gestion", "Droit", "Médecine"],
-  "order": 2
-}
-```
-
-**Réponse (201 Created) :**
-```json
-{
-  "success": true,
-  "message": "Field added successfully",
-  "data": {
-    "id": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
-    "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-    "label": "Université",
-    "fieldType": "TEXT",
-    "isRequired": true,
-    "options": null,
-    "order": 1
-  },
-  "timestamp": "2025-11-30T07:28:54.664Z"
-}
-```
+**Types de champs :**
+- `TEXT`, `NUMBER`, `DATE`, `SELECT`, `CHECKBOX`, `TEXTAREA`
 
 ---
 
-### 2. Obtenir les Champs d'un Formulaire
-
-**Endpoint :** `GET /api/forms/{formId}/fields`
-
-**Authentification :** Bearer Token
-
-**Headers :**
-```
-Authorization: Bearer {token}
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": [
-    {
-      "id": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
-      "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-      "label": "Université",
-      "fieldType": "TEXT",
-      "isRequired": true,
-      "options": null,
-      "order": 1
-    },
-    ...
-  ],
-  "timestamp": "2025-11-30T..."
-}
-```
-
----
-
-### 3. Mettre à Jour un Champ
-
-**Endpoint :** `PUT /api/forms/fields/{fieldId}`
-
-**Authentification :** Bearer Token (SUPER_ADMIN uniquement)
-
-**Headers :**
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-**Body (tous les champs sont optionnels) :**
-```json
-{
-  "label": "Université (nouveau)",
-  "isRequired": false,
-  "order": 5
-}
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Resource updated successfully",
-  "data": {
-    "id": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
-    "label": "Université (nouveau)",
-    "isRequired": false,
-    ...
-  },
-  "timestamp": "2025-11-30T..."
-}
-```
-
----
-
-### 4. Supprimer un Champ
-
-**Endpoint :** `DELETE /api/forms/fields/{fieldId}`
-
-**Authentification :** Bearer Token (SUPER_ADMIN uniquement)
-
-**Headers :**
-```
-Authorization: Bearer {token}
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Resource deleted successfully",
-  "data": {
-    "message": "Field template deleted successfully"
-  },
-  "timestamp": "2025-11-30T..."
-}
-```
-
----
-
-## ⏰ Module Intervals (Intervalles Horaires)
+## ⏰ Module Intervals
 
 ### 1. Créer/Modifier un Intervalle
 
 **Endpoint :** `POST /api/forms/{formId}/interval`
-
-**Authentification :** Bearer Token (SUPER_ADMIN uniquement)
-
-**Note :** Cette route supprime l'ancien intervalle et crée le nouveau (un seul intervalle par formulaire)
-
-**Headers :**
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
 
 **Body :**
 ```json
@@ -502,111 +452,21 @@ Content-Type: application/json
 }
 ```
 
-**Format :** `HH:mm` (24h)
-
-**Réponse (201 Created) :**
-```json
-{
-  "success": true,
-  "message": "Interval created successfully",
-  "data": {
-    "id": "18a5df91-8923-4e84-be0c-483b4a524a2b",
-    "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-    "startTime": "08:00",
-    "endTime": "17:00",
-    "createdAt": "2025-11-30T07:33:29.730Z"
-  },
-  "timestamp": "2025-11-30T07:33:29.747Z"
-}
-```
-
----
-
-## 🔒 Gestion des Erreurs
-
-### Erreurs Communes
-
-**401 Unauthorized :**
-```json
-{
-  "success": false,
-  "message": "No token provided",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**403 Forbidden :**
-```json
-{
-  "success": false,
-  "message": "Insufficient permissions",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**404 Not Found :**
-```json
-{
-  "success": false,
-  "message": "Form template not found",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**422 Validation Error :**
-```json
-{
-  "success": false,
-  "message": "Validation failed",
-  "error": [
-    {
-      "field": "body.name",
-      "message": "Name must be at least 3 characters"
-    }
-  ],
-  "timestamp": "2025-11-30T..."
-}
-```
-
----
-
-## 📝 Notes pour le Frontend
-
-### Authentification
-1. Faire un `POST /api/auth/login` avec username et password
-2. Stocker le `token` dans localStorage ou state management
-3. Ajouter le token dans les headers de toutes les requêtes suivantes :
-   ```
-   Authorization: Bearer {token}
-   ```
-
-### Workflow de Création d'un Formulaire
-1. `POST /api/forms` → Créer le formulaire
-2. `POST /api/forms/{formId}/fields` → Ajouter les champs (répéter pour chaque champ)
-3. `POST /api/forms/{formId}/interval` → Ajouter l'intervalle (si ARRIVAL_DEPARTURE)
-4. `GET /api/forms/{formId}` → Vérifier le formulaire complet
-
-### Types de Données
-- **UUID** : Format `"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"`
-- **DateTime** : Format ISO 8601 `"2025-11-30T07:26:27.256Z"`
-- **Time** : Format `"HH:mm"` (ex: `"08:00"`, `"17:30"`)
-
----
-
 ---
 
 ## 👤 Module Enrollment (Enrôlement)
+
+**Important Multi-Tenant :**
+- Le visiteur est automatiquement enrôlé dans le **tenant du formulaire choisi**
+- Un visiteur de Cotonou ne peut PAS marquer sa présence avec un formulaire de Porto-Novo
+
+---
 
 ### 1. Enrôler un Nouveau Visiteur
 
 **Endpoint :** `POST /api/enrollment`
 
 **Authentification :** Non requise (Public)
-
-**Headers :**
-```
-Content-Type: application/json
-```
 
 **Body :**
 ```json
@@ -616,29 +476,20 @@ Content-Type: application/json
   "title": "ETUDIANT",
   "phone": "+22997123456",
   "email": "nathan@example.com",
-  "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
+  "formTemplateId": "6a447cc1-118f-4fbb-872d-95067038c520",
   "fieldValues": [
     {
       "fieldTemplateId": "44d4c7a5-adc1-4977-8eca-ce927b38f47c",
       "value": "Université d'Abomey-Calavi"
-    },
-    {
-      "fieldTemplateId": "ef94dd4d-3411-4aa3-8a17-4d84bf0f0eda",
-      "value": "Informatique"
-    },
-    {
-      "fieldTemplateId": "545985e6-72a8-4ae5-a943-d45bae084886",
-      "value": "3"
     }
   ]
 }
 ```
 
-**Titres possibles :**
-- `ETUDIANT`
-- `PROFESSIONNEL`
-- `ELEVE`
-- `AUTRE`
+**Comportement Multi-Tenant :**
+1. Le système récupère le formulaire avec `formTemplateId`
+2. Le `tenantId` est **automatiquement déduit** du formulaire
+3. Le visiteur est enrôlé dans ce tenant
 
 **Réponse (201 Created) :**
 ```json
@@ -652,55 +503,9 @@ Content-Type: application/json
       "lastName": "VOGLOSSOU",
       "firstName": "Nathan",
       "title": "ETUDIANT",
-      "phone": "+22997123456",
-      "email": "nathan@example.com",
-      "fieldValues": [
-        {
-          "field": "Université",
-          "value": "Université d'Abomey-Calavi"
-        },
-        {
-          "field": "Filière",
-          "value": "Informatique"
-        },
-        {
-          "field": "Année d'études",
-          "value": "3"
-        }
-      ]
-    },
-    "message": "User enrolled successfully. UUID: BE-9UH6EVK"
-  },
-  "timestamp": "2025-11-30T07:45:29.188Z"
-}
-```
-
-**Erreurs possibles :**
-
-**404 - Formulaire introuvable :**
-```json
-{
-  "success": false,
-  "message": "Form template not found",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**400 - Champ requis manquant :**
-```json
-{
-  "success": false,
-  "message": "Required field 'Université' is missing",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**400 - Formulaire inactif :**
-```json
-{
-  "success": false,
-  "message": "Form template is not active",
-  "timestamp": "2025-11-30T..."
+      "fieldValues": [...]
+    }
+  }
 }
 ```
 
@@ -708,263 +513,258 @@ Content-Type: application/json
 
 ## ✅ Module Presence (Présences)
 
+**Important Multi-Tenant :**
+- Le système vérifie que le formulaire **appartient au même tenant** que le visiteur
+- Un visiteur de Cotonou ne peut PAS utiliser un formulaire de Porto-Novo
+
+---
+
 ### 1. Enregistrer une Présence
 
 **Endpoint :** `POST /api/presence`
 
 **Authentification :** Non requise (Public)
 
-**Headers :**
-```
-Content-Type: application/json
-```
-
 **Body :**
 ```json
 {
   "uuidCode": "BE-9UH6EVK",
-  "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9"
+  "formTemplateId": "6a447cc1-118f-4fbb-872d-95067038c520"
 }
 ```
 
-**Logique automatique :**
-- **Type SIMPLE_PRESENCE** : Enregistre une présence simple (illimité)
-- **Type ARRIVAL_DEPARTURE** (cycles multiples) :
-  - Si dernière présence = `DEPARTURE` ou aucune présence → `ARRIVAL`
-  - Si dernière présence = `ARRIVAL` → `DEPARTURE`
-  - **Cycles illimités** : ARRIVAL → DEPARTURE → ARRIVAL → DEPARTURE...
+**Comportement Multi-Tenant :**
+1. Vérifie que l'utilisateur existe
+2. Récupère le `tenantId` de l'utilisateur
+3. Vérifie que le formulaire appartient au **même tenant**
+4. Refuse si les tenants ne correspondent pas
 
-**Réponse 1 - ARRIVAL (201 Created) :**
+**Logique automatique :**
+- **SIMPLE_PRESENCE** : Illimité
+- **ARRIVAL_DEPARTURE** : Cycles multiples (ARRIVAL → DEPARTURE → ARRIVAL...)
+
+**Réponse (201 Created) :**
 ```json
 {
   "success": true,
   "message": "Arrival recorded successfully",
   "data": {
     "presence": {
-      "id": "7fb9a6a8-a38c-4962-a04e-ab448dbdd010",
+      "id": "10a3446c-b345-4124-8034-66c5a3f1b944",
       "presenceType": "ARRIVAL",
-      "timestamp": "2025-11-30T14:01:41.235Z",
+      "timestamp": "2025-11-30T21:17:54.227Z",
       "user": {
         "uuidCode": "BE-9UH6EVK",
         "firstName": "Nathan",
         "lastName": "VOGLOSSOU"
       }
-    },
-    "message": "Arrival recorded successfully"
-  },
-  "timestamp": "2025-11-30T14:01:41.256Z"
+    }
+  }
 }
 ```
 
-**Réponse 2 - DEPARTURE (201 Created) :**
-```json
-{
-  "success": true,
-  "message": "Departure recorded successfully",
-  "data": {
-    "presence": {
-      "id": "3b4168c5-e28b-468e-833f-4bed3523ba53",
-      "presenceType": "DEPARTURE",
-      "timestamp": "2025-11-30T14:02:17.341Z",
-      "user": {
-        "uuidCode": "BE-9UH6EVK",
-        "firstName": "Nathan",
-        "lastName": "VOGLOSSOU"
-      }
-    },
-    "message": "Departure recorded successfully"
-  },
-  "timestamp": "2025-11-30T14:02:17.357Z"
-}
-```
-
-**Réponse 3 - SIMPLE (201 Created) :**
-```json
-{
-  "success": true,
-  "message": "Presence recorded successfully",
-  "data": {
-    "presence": {
-      "id": "78b7c716-1fe9-477b-b998-09e040acbbfe",
-      "presenceType": "SIMPLE",
-      "timestamp": "2025-11-30T21:03:24.496Z",
-      "user": {
-        "uuidCode": "BE-9UH6EVK",
-        "firstName": "Nathan",
-        "lastName": "VOGLOSSOU"
-      }
-    },
-    "message": "Presence recorded successfully"
-  },
-  "timestamp": "2025-11-30T21:03:24.516Z"
-}
-```
-
-**Exemple de cycles multiples (ARRIVAL_DEPARTURE) :**
-```
-21:17:54 → ARRIVAL   (1er cycle - arrivée)
-21:18:50 → DEPARTURE (1er cycle - départ)
-21:19:31 → ARRIVAL   (2ème cycle - retour)
-21:20:09 → DEPARTURE (2ème cycle - départ)
-```
-✅ **Cycles illimités possibles dans la même journée !**
-
-**Erreurs possibles :**
-
-**404 - UUID introuvable :**
+**Erreur Multi-Tenant (404) :**
 ```json
 {
   "success": false,
-  "message": "User not found with this UUID",
-  "timestamp": "2025-11-30T..."
+  "message": "Form template not found or does not belong to your organization",
+  "timestamp": "2025-12-01T..."
 }
 ```
-
-**400 - Hors intervalle horaire :**
-```json
-{
-  "success": false,
-  "message": "Outside allowed time interval (08:00 - 17:00)",
-  "timestamp": "2025-11-30T..."
-}
-```
-
-**400 - Déjà sorti :**
-```json
-{
-  "success": false,
-  "message": "Already checked out today",
-  "timestamp": "2025-11-30T..."
-}
-```
-**Note :** Cette erreur n'apparaît plus avec la nouvelle logique. Les cycles multiples sont maintenant autorisés.
 
 ---
 
-### 2. Obtenir l'Historique des Présences
+### 2. Obtenir l'Historique
 
 **Endpoint :** `GET /api/presence/{uuidCode}`
 
-**Authentification :** Non requise (Public)
-
-**Exemple :**
-```
-GET /api/presence/BE-9UH6EVK
-```
-
-**Réponse (200 OK) :**
-```json
-{
-  "success": true,
-  "message": "Presences retrieved successfully",
-  "data": {
-    "user": {
-      "uuidCode": "BE-9UH6EVK",
-      "firstName": "Nathan",
-      "lastName": "VOGLOSSOU"
-    },
-    "presences": [
-      {
-        "id": "3b4168c5-e28b-468e-833f-4bed3523ba53",
-        "userId": "aae47fad-16e2-406b-82aa-f6d73c50b1b1",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "presenceType": "DEPARTURE",
-        "timestamp": "2025-11-30T14:02:17.341Z",
-        "formTemplate": {
-          "name": "Formulaire Étudiant",
-          "type": "ARRIVAL_DEPARTURE"
-        }
-      },
-      {
-        "id": "7fb9a6a8-a38c-4962-a04e-ab448dbdd010",
-        "userId": "aae47fad-16e2-406b-82aa-f6d73c50b1b1",
-        "formTemplateId": "df4daf3e-5eba-4044-82d4-1de8d05bb1b9",
-        "presenceType": "ARRIVAL",
-        "timestamp": "2025-11-30T14:01:41.235Z",
-        "formTemplate": {
-          "name": "Formulaire Étudiant",
-          "type": "ARRIVAL_DEPARTURE"
-        }
-      }
-    ]
-  },
-  "timestamp": "2025-11-30T14:02:49.895Z"
-}
-```
-
-**Note :** Les présences sont triées de la plus récente à la plus ancienne. Limite de 50 résultats.
+**Réponse :** Retourne SEULEMENT les présences du tenant de l'utilisateur.
 
 ---
 
-## 🔄 Workflow Complet du Système
+## 🔄 Workflow Complet Multi-Tenant Dynamique
+
+### Workflow SYSTEM_ADMIN (Toi)
+
+1. **Te connecter** avec ton compte système
+   ```
+   POST /api/auth/login
+   Body: { "username": "system_admin", "password": "System@123" }
+   ```
+2. **Créer une nouvelle organisation**
+   ```
+   POST /api/setup/organization
+   ```
+   → Crée automatiquement tenant + SUPER_ADMIN
+3. **Répéter** pour chaque nouvelle organisation
+4. **Gérer globalement** (optionnel : voir toutes les orgs)
+
+### Workflow SUPER_ADMIN (Chef d'organisation)
+
+1. **Se connecter** avec son compte (fourni par SYSTEM_ADMIN)
+   ```
+   POST /api/auth/login
+   ```
+2. **Créer des formulaires** pour son organisation
+   ```
+   POST /api/forms
+   POST /api/forms/{id}/fields
+   POST /api/forms/{id}/interval
+   ```
+3. **Gérer les formulaires** (modifier, supprimer)
+4. **Créer d'autres admins** (MANAGER) pour son organisation
+   ```
+   POST /api/auth/register
+   ```
+5. **Superviser** les présences et utilisateurs
 
 ### Workflow Visiteur
 
-1. **Enrôlement (une seule fois)**
-   - `POST /api/enrollment`
-   - Recevoir son UUID : `BE-XXXXXXX`
-
-2. **Enregistrer sa présence (tous les jours)**
-   - `POST /api/presence` avec son UUID
-   - Si formulaire ARRIVAL_DEPARTURE :
-     - Matin → ARRIVAL
-     - Soir → DEPARTURE
-
-3. **Consulter son historique (optionnel)**
-   - `GET /api/presence/{uuidCode}`
-
-### Workflow Admin
-
-1. **Se connecter**
-   - `POST /api/auth/login`
-   - Recevoir un token JWT
-
-2. **Créer des formulaires**
-   - `POST /api/forms` (créer le formulaire)
-   - `POST /api/forms/{id}/fields` (ajouter des champs)
-   - `POST /api/forms/{id}/interval` (configurer l'intervalle si ARRIVAL_DEPARTURE)
-
-3. **Gérer les formulaires**
-   - `GET /api/forms` (voir tous)
-   - `PUT /api/forms/{id}` (modifier)
-   - `DELETE /api/forms/{id}` (supprimer)
+1. **Choisir un formulaire** (affiché sur l'interface)
+2. **S'enrôler** avec le formulaire choisi
+   ```
+   POST /api/enrollment
+   ```
+   → Reçoit un UUID : `BE-XXXXX`
+3. **Marquer sa présence** tous les jours
+   ```
+   POST /api/presence
+   ```
+4. **Consulter son historique** (optionnel)
+   ```
+   GET /api/presence/{uuidCode}
+   ```
 
 ---
 
-## 🔄 Modules à venir
+## 🛡️ Sécurité Multi-Tenant
 
-- **Users** : Gestion des visiteurs (admin)
-- **Admin** : Dashboard et statistiques
-- **Reports** : Rapports et exports
+### Isolation des données
 
----
+✅ **Niveau Admin :**
+- JWT contient le `tenantId`
+- Tous les services filtrent automatiquement par `tenantId`
+- Un admin ne peut PAS accéder aux données d'un autre tenant
 
-## 📝 Notes Importantes pour le Frontend
+✅ **Niveau Visiteur :**
+- Le `tenantId` est déduit du formulaire lors de l'enrollment
+- La présence vérifie que formulaire et visiteur ont le même `tenantId`
+- Impossible de croiser les données entre tenants
 
-### Format UUID
-- **Format** : `BE-XXXXXXX` (BE suivi de 7 caractères alphanumériques majuscules)
-- **Exemple** : `BE-9UH6EVK`, `BE-A3F8G2T`
-
-### Logique Présence
-- Pour un formulaire **SIMPLE_PRESENCE** :
-  - Enregistrement illimité (autant de fois que nécessaire)
-  - Toujours type `SIMPLE`
-  
-- Pour un formulaire **ARRIVAL_DEPARTURE** :
-  - **Cycles multiples autorisés** dans la même journée
-  - Si dernière présence = `DEPARTURE` (ou aucune présence) → Nouvelle `ARRIVAL`
-  - Si dernière présence = `ARRIVAL` → `DEPARTURE`
-  - Exemple : Matin (ARRIVAL → DEPARTURE) + Après-midi (ARRIVAL → DEPARTURE)
-  - Le backend gère automatiquement la logique !
-
-### Validation des Champs
-- Tous les champs marqués `isRequired: true` doivent être remplis lors de l'enrôlement
-- Les `fieldTemplateId` doivent correspondre aux champs du formulaire choisi
-
-### Gestion des Erreurs
-- Toujours vérifier `success: false` pour détecter les erreurs
-- Afficher le `message` à l'utilisateur
+✅ **Niveau Base de données :**
+- Toutes les tables principales ont une colonne `tenantId`
+- Relations en cascade : supprimer un tenant supprime toutes ses données
+- Index sur `tenantId` pour des performances optimales
 
 ---
 
-*Documentation mise à jour le 30 novembre 2025.*
+## 📊 Modèle de Données Multi-Tenant Dynamique
+
+```
+SYSTEM_ADMIN (Toi)
+├── username: "system_admin"
+├── password: "System@123"
+├── role: SYSTEM_ADMIN
+└── tenantId: null (pas de tenant)
+
+├── Crée → Tenant (Organisation)
+    ├── id (UUID)
+    ├── name ("BENIN EXCELLENCE Cotonou")
+    ├── code ("BE-COTONOU", unique, auto-généré)
+    ├── description
+    └── active (boolean)
+    │
+    ├── Crée → AdminUser (SUPER_ADMIN)
+    │   ├── id (UUID)
+    │   ├── tenantId → Tenant
+    │   ├── username (unique)
+    │   ├── passwordHash
+    │   └── role: SUPER_ADMIN
+    │
+    ├── Crée → AdminUser (MANAGER) - optionnel
+    │   ├── id (UUID)
+    │   ├── tenantId → Tenant
+    │   ├── username (unique)
+    │   ├── passwordHash
+    │   └── role: MANAGER
+    │
+    ├── FormTemplate
+    │   ├── id (UUID)
+    │   ├── tenantId → Tenant
+    │   ├── name
+    │   ├── type (SIMPLE_PRESENCE, ARRIVAL_DEPARTURE)
+    │   └── active (boolean)
+    │
+    ├── User (Visiteur)
+    │   ├── id (UUID)
+    │   ├── tenantId → Tenant
+    │   ├── uuidCode (unique, "BE-XXXXX")
+    │   ├── lastName, firstName
+    │   └── title (ETUDIANT, PROFESSIONNEL, ELEVE, AUTRE)
+    │
+    └── Presence
+        ├── id (UUID)
+        ├── tenantId → Tenant
+        ├── userId → User
+        ├── formTemplateId → FormTemplate
+        ├── presenceType (ARRIVAL, DEPARTURE, SIMPLE)
+        └── timestamp
+```
+
+---
+
+## 🔧 Gestion des Erreurs
+
+### Erreurs Multi-Tenant Spécifiques
+
+**404 - Ressource d'un autre tenant :**
+```json
+{
+  "success": false,
+  "message": "Form template not found",
+  "timestamp": "2025-12-01T..."
+}
+```
+Note : Par sécurité, on ne révèle pas que la ressource existe dans un autre tenant.
+
+**404 - Tenant incompatible :**
+```json
+{
+  "success": false,
+  "message": "Form template not found or does not belong to your organization",
+  "timestamp": "2025-12-01T..."
+}
+```
+
+---
+
+## 📝 Notes pour le Frontend
+
+### Gestion du Token JWT
+
+Le token contient maintenant le `tenantId`. Exemple de payload décodé :
+```json
+{
+  "id": "3f3a80f0-9aa3-44bd-b597-27d65db3ad9f",
+  "username": "admin_cotonou",
+  "role": "SUPER_ADMIN",
+  "tenantId": "c5d0cc0e-f2d1-4c22-8b28-a7e97a8b2302",
+  "iat": 1764564434,
+  "exp": 1765169234
+}
+```
+
+### Affichage des Données
+
+- Ne jamais afficher le `tenantId` aux utilisateurs finaux
+- L'admin voit son organisation dans le profil
+- Les visiteurs n'ont pas besoin de connaître leur tenant
+
+### Enrollment
+
+- Afficher la liste des formulaires disponibles (publics)
+- Le `tenantId` est automatiquement géré par le backend
+
+---
+
+*Documentation mise à jour le 1er décembre 2025 - Version 2.1 Multi-Tenant Dynamique*

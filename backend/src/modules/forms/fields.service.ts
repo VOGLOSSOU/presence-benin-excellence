@@ -1,14 +1,14 @@
 import prisma from '../../config/database';
 import { NotFoundError } from '../../shared/errors';
-import { CreateFieldRequest, UpdateFieldRequest } from './forms.types';
-import { getFormByIdService } from './forms.service';
+import { CreateFieldTemplateRequest, UpdateFieldTemplateRequest } from './forms.types';
+import { getFormTemplateByIdService } from './forms.service';
 
 /**
  * Ajouter un champ à un formulaire
  */
-export const addFieldService = async (formId: string, data: CreateFieldRequest, tenantId: string) => {
+export const addFieldService = async (formId: string, data: CreateFieldTemplateRequest, tenantId: string) => {
   // Vérifier que le formulaire existe et appartient au tenant
-  await getFormByIdService(formId, tenantId);
+  await getFormTemplateByIdService(formId, tenantId);
 
   const field = await prisma.fieldTemplate.create({
     data: {
@@ -29,7 +29,7 @@ export const addFieldService = async (formId: string, data: CreateFieldRequest, 
  */
 export const getFieldsByFormIdService = async (formId: string, tenantId: string) => {
   // Vérifier que le formulaire existe et appartient au tenant
-  await getFormByIdService(formId, tenantId);
+  await getFormTemplateByIdService(formId, tenantId);
 
   const fields = await prisma.fieldTemplate.findMany({
     where: { formTemplateId: formId },
@@ -42,7 +42,7 @@ export const getFieldsByFormIdService = async (formId: string, tenantId: string)
 /**
  * Mettre à jour un champ
  */
-export const updateFieldService = async (fieldId: string, data: UpdateFieldRequest, tenantId: string) => {
+export const updateFieldService = async (fieldId: string, data: UpdateFieldTemplateRequest, tenantId: string) => {
   // Vérifier que le champ existe
   const existingField = await prisma.fieldTemplate.findUnique({
     where: { id: fieldId },

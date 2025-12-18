@@ -1,9 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, Home, Calendar, User } from 'lucide-react';
 import VisitorLayout from '@/layouts/VisitorLayout';
 
 export default function PresencePage() {
+  const navigate = useNavigate();
+
   // Simulation de données
   const presenceData = {
     type: 'ARRIVAL',
@@ -141,13 +143,13 @@ export default function PresencePage() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/"
+          <button
+            onClick={() => navigate(-1)}
             className="inline-flex items-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors shadow-md"
           >
             <Home className="w-5 h-5 mr-2" />
-            Retour à l'accueil
-          </Link>
+            Retour à la page précédente
+          </button>
           <button
             onClick={() => alert('Historique simulé: 3 présences cette semaine')}
             className="inline-flex items-center px-8 py-4 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"

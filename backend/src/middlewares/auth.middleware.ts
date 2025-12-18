@@ -31,6 +31,7 @@ export const authenticate = async (
       role: decoded.role as AdminRole,
       tenantId: decoded.tenantId,  // ← NOUVEAU
     };
+
     
     next();
   } catch (error) {
@@ -70,3 +71,35 @@ export const requireSuperAdmin = requireRole(AdminRole.SUPER_ADMIN);
  * Middleware pour vérifier que l'utilisateur est un system admin
  */
 export const requireSystemAdmin = requireRole(AdminRole.SYSTEM_ADMIN);
+
+/**
+ * Middleware spécial pour les routes setup qui permet aux SYSTEM_ADMIN et aux SUPER_ADMIN de voir leur propre tenant
+ */
+export const requireSystemAdminOrOwnTenant = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const user = (req as any).user;
+    const tenantId = req.params.tenantId;
+
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // SYSTEM_ADMIN peut tout voir
+    if (user.role === AdminRole.SYSTEM_ADMIN) {
+      return next();
+    }
+
+    // SUPER_ADMIN ne peut voir que son propre tenant
+    if (user.role === AdminRole.SUPER_ADMIN && user.tenantId === tenantId) {
+      return next();
+    }
+
+    throw new UnauthorizedError('Insufficient permissions');
+  } catch (error) {
+    next(error);
+  }
+};

@@ -3,10 +3,14 @@ import { SystemAdminGuard, SuperAdminGuard, AdminGuard } from './guards';
 
 // Pages
 import LoginPage from '@/pages/auth/LoginPage';
+import SystemLoginPage from '@/pages/auth/SystemLoginPage';
 import UnauthorizedPage from '@/pages/auth/UnauthorizedPage';
 
 // Setup pages (System Admin only)
 import OrganizationSetupPage from '@/pages/setup/OrganizationSetupPage';
+
+// System pages (System Admin only)
+import SystemDashboardPage from '@/pages/system/SystemDashboardPage';
 
 // Admin pages (Super Admin + Manager)
 import DashboardPage from '@/pages/admin/DashboardPage';
@@ -28,14 +32,40 @@ const AppRoutes = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/system/login" element={<SystemLoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* Visitor routes (public) */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/register" element={<RegistrationPage />} />
-      <Route path="/presence" element={<PresencePage />} />
+      {/* Organization visitor routes (public with org context) */}
+      <Route path="/org/:orgCode" element={<HomePage />} />
+      <Route path="/org/:orgCode/register" element={<RegistrationPage />} />
+      <Route path="/org/:orgCode/presence" element={<PresencePage />} />
+
+      {/* Legacy routes - redirect to org */}
+      <Route path="/register" element={<Navigate to="/org/default/register" replace />} />
+      <Route path="/presence" element={<Navigate to="/org/default/presence" replace />} />
+
+      {/* Root route - Super Admin Dashboard */}
+      <Route
+        path="/"
+        element={
+          <SuperAdminGuard>
+            <DashboardPage />
+          </SuperAdminGuard>
+        }
+      />
 
       {/* System Admin routes */}
+      <Route
+        path="/system/*"
+        element={
+          <SystemAdminGuard>
+            <Routes>
+              <Route path="/dashboard" element={<SystemDashboardPage />} />
+            </Routes>
+          </SystemAdminGuard>
+        }
+      />
+
       <Route
         path="/setup/*"
         element={

@@ -40,3 +40,18 @@ export interface LoginResponse {
   };
   token: string;
 }
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  role: 'SUPER_ADMIN' | 'MANAGER';
+}
+
+export interface AuthResponse {
+  admin: {
+    id: string;
+    username: string;
+    role: string;
+  };
+  token: string;
+}

@@ -271,11 +271,6 @@ Exécute l'INSERT et retourne la donnée.
 
 ---
 
-## 🚀 Prochaines étapes
 
-1. **Créer la structure des dossiers**
-2. **Initialiser le projet Node.js**
-3. **Configurer Prisma**
-4. **Coder module par module**
 
 **Tu es prêt à mettre en place cette architecture ?**

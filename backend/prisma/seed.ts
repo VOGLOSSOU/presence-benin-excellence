@@ -12,7 +12,7 @@ async function main() {
   const systemPassword = 'System@123';
   const systemPasswordHash = await bcrypt.hash(systemPassword, 10);
 
-  const systemAdmin = await prisma.adminUser.upsert({
+  await prisma.adminUser.upsert({
     where: { username: 'system_admin' },
     update: {},
     create: {

@@ -1,0 +1,393 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Building,
+  Users,
+  Plus,
+  Settings,
+  Shield,
+  Crown,
+  Globe,
+  BarChart3,
+  Calendar,
+  ArrowLeft,
+  RefreshCw
+} from 'lucide-react';
+import { setupService, reportService } from '@/services';
+
+interface Organization {
+  id: string;
+  name: string;
+  code: string;
+  adminUsername?: string;
+  usersCount?: number;
+  formsCount?: number;
+  status?: string;
+  createdAt?: string;
+}
+
+interface SystemStats {
+  totalOrganizations: number;
+  totalUsers: number;
+  totalPresences: number;
+  systemHealth: string;
+}
+
+export default function SystemDashboardPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [systemStats, setSystemStats] = useState<SystemStats>({
+    totalOrganizations: 0,
+    totalUsers: 0,
+    totalPresences: 0,
+    systemHealth: 'healthy'
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Charger les données au montage du composant
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Charger les organisations
+      const orgsResponse = await setupService.getAllOrganizations();
+      setOrganizations(orgsResponse);
+
+      // Charger les statistiques système
+      const statsResponse = await setupService.getSystemStats();
+      setSystemStats(statsResponse);
+
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      setError(error instanceof Error ? error.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/"
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Administration Système</h1>
+                  <p className="text-sm text-gray-600">Panneau de contrôle général</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Connecté en tant que</p>
+                <p className="text-gray-900 font-semibold">System Administrator</p>
+              </div>
+              <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* System Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Organisations</p>
+                <p className="text-3xl font-bold text-gray-900">{systemStats.totalOrganizations}</p>
+              </div>
+              <Building className="w-8 h-8 text-primary-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Utilisateurs totaux</p>
+                <p className="text-3xl font-bold text-gray-900">{systemStats.totalUsers.toLocaleString()}</p>
+              </div>
+              <Users className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Présences totales</p>
+                <p className="text-3xl font-bold text-gray-900">{systemStats.totalPresences.toLocaleString()}</p>
+              </div>
+              <BarChart3 className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">État système</p>
+                <p className="text-3xl font-bold text-gray-900 capitalize">{systemStats.systemHealth}</p>
+              </div>
+              <Globe className="w-8 h-8 text-orange-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Organizations Management */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Gestion des Organisations</h2>
+                <p className="text-gray-600 mt-1">Administrer toutes les organisations BENIN EXCELLENCE</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Actualiser les données"
+                >
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-all flex items-center space-x-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Nouvelle Organisation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="p-12 text-center">
+                <RefreshCw className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-4" />
+                <p className="text-gray-600">Chargement des organisations...</p>
+              </div>
+            ) : error ? (
+              <div className="p-12 text-center">
+                <div className="text-red-600 mb-4">
+                  <p className="text-lg font-semibold">Erreur de chargement</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
+                >
+                  Réessayer
+                </button>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Organisation
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Admin Principal
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Utilisateurs
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Formulaires
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                    {organizations.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          Aucune organisation trouvée
+                        </td>
+                      </tr>
+                    ) : (
+                      organizations.map((org) => (
+                        <tr key={org.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{org.name}</div>
+                              <div className="text-sm text-gray-500">{org.code}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{org.adminUsername || 'N/A'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{org.usersCount?.toLocaleString() || '0'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{org.formsCount || '0'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button className="text-primary-600 hover:text-primary-800 mr-4">
+                              <Settings className="w-4 h-4" />
+                            </button>
+                            <button className="text-gray-600 hover:text-gray-800">
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                <Shield className="w-6 h-6 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Sécurité</h3>
+                <p className="text-gray-600 text-sm">Gérer les accès système</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Rapports</h3>
+                <p className="text-gray-600 text-sm">Analyses globales du système</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Settings className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Configuration</h3>
+                <p className="text-gray-600 text-sm">Paramètres système</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Create Organization Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle max-w-lg w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Créer une nouvelle organisation</h3>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom de l'organisation *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="BENIN EXCELLENCE [Ville]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom d'utilisateur admin *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="admin_[ville]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mot de passe temporaire *
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Mot de passe sécurisé"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Créer l'organisation
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,64 +1,75 @@
 import { Request, Response, NextFunction } from 'express';
 import {
-  createFormService,
-  getAllFormsService,
-  getFormByIdService,
-  updateFormService,
-  deleteFormService,
-  createIntervalService,
+  getAllFormTemplatesService,
+  getFormTemplateByIdService,
+  createFormTemplateService,
+  updateFormTemplateService,
+  deleteFormTemplateService,
+  toggleFormTemplateStatusService,
+  getPublicFormTemplatesService,
 } from './forms.service';
 import { successResponse } from '../../utils/response.util';
-import { HTTP_STATUS, MESSAGES } from '../../config/constants';
+import { HTTP_STATUS } from '../../config/constants';
 
 /**
- * Créer un formulaire
- * POST /api/forms
+ * Récupérer tous les formulaires de l'organisation
+ * GET /api/admin/forms
  */
-export const createFormController = async (
+export const getAllFormTemplatesController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const form = await createFormService(req.body, tenantId);
-    successResponse(res, form, MESSAGES.CREATED, HTTP_STATUS.CREATED);
+    const tenantId = (req as any).user.tenantId;
+    const forms = await getAllFormTemplatesService(tenantId);
+    successResponse(res, forms, 'Formulaires récupérés avec succès');
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * Obtenir tous les formulaires
- * GET /api/forms
+ * Récupérer un formulaire par ID
+ * GET /api/admin/forms/{formId}
  */
-export const getAllFormsController = async (
+export const getFormTemplateByIdController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const forms = await getAllFormsService(tenantId);
-    successResponse(res, forms, MESSAGES.SUCCESS);
+    const { formId } = req.params;
+    const tenantId = (req as any).user.tenantId;
+
+    const form = await getFormTemplateByIdService(formId, tenantId);
+    if (!form) {
+      res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: 'Formulaire introuvable',
+      });
+      return;
+    }
+
+    successResponse(res, form, 'Formulaire récupéré avec succès');
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * Obtenir un formulaire par ID
- * GET /api/forms/:id
+ * Créer un nouveau formulaire
+ * POST /api/admin/forms
  */
-export const getFormByIdController = async (
+export const createFormTemplateController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const form = await getFormByIdService(req.params.id, tenantId);
-    successResponse(res, form, MESSAGES.SUCCESS);
+    const tenantId = (req as any).user.tenantId;
+    const form = await createFormTemplateService(req.body, tenantId);
+    successResponse(res, form, 'Formulaire créé avec succès', HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -66,17 +77,19 @@ export const getFormByIdController = async (
 
 /**
  * Mettre à jour un formulaire
- * PUT /api/forms/:id
+ * PUT /api/admin/forms/{formId}
  */
-export const updateFormController = async (
+export const updateFormTemplateController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const form = await updateFormService(req.params.id, req.body, tenantId);
-    successResponse(res, form, MESSAGES.UPDATED);
+    const { formId } = req.params;
+    const tenantId = (req as any).user.tenantId;
+
+    const form = await updateFormTemplateService(formId, tenantId, req.body);
+    successResponse(res, form, 'Formulaire mis à jour avec succès');
   } catch (error) {
     next(error);
   }
@@ -84,35 +97,57 @@ export const updateFormController = async (
 
 /**
  * Supprimer un formulaire
- * DELETE /api/forms/:id
+ * DELETE /api/admin/forms/{formId}
  */
-export const deleteFormController = async (
+export const deleteFormTemplateController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const result = await deleteFormService(req.params.id, tenantId);
-    successResponse(res, result, MESSAGES.DELETED);
+    const { formId } = req.params;
+    const tenantId = (req as any).user.tenantId;
+
+    await deleteFormTemplateService(formId, tenantId);
+    successResponse(res, null, 'Formulaire supprimé avec succès');
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * Créer un intervalle pour un formulaire
- * POST /api/forms/:id/interval
+ * Activer/Désactiver un formulaire
+ * PUT /api/admin/forms/{formId}/toggle-status
  */
-export const createIntervalController = async (
+export const toggleFormTemplateStatusController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;  // ← NOUVEAU
-    const interval = await createIntervalService(req.params.id, req.body, tenantId);
-    successResponse(res, interval, 'Interval created successfully', HTTP_STATUS.CREATED);
+    const { formId } = req.params;
+    const tenantId = (req as any).user.tenantId;
+
+    const form = await toggleFormTemplateStatusService(formId, tenantId);
+    successResponse(res, form, 'Statut du formulaire mis à jour avec succès');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Récupérer les formulaires actifs d'une organisation (public)
+ * GET /api/forms/public/{tenantId}
+ */
+export const getPublicFormTemplatesController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { tenantId } = req.params;
+    const forms = await getPublicFormTemplatesService(tenantId);
+    successResponse(res, forms, 'Formulaires récupérés avec succès');
   } catch (error) {
     next(error);
   }

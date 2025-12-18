@@ -19,6 +19,9 @@
   ],
   "author": "Nathan Voglossou",
   "license": "ISC",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "express": "^4.21.0",

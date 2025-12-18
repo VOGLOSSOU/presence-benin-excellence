@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import VisitorLayout from '@/layouts/VisitorLayout';
 import Modal from '@/components/common/Modal';
 
 export default function RegistrationPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     lastName: '',
@@ -40,13 +41,13 @@ export default function RegistrationPage() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link
-            to="/"
+          <button
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-6"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Retour à l'accueil
-          </Link>
+            Retour à la page précédente
+          </button>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             S'enregistrer à BENIN EXCELLENCE
           </h1>

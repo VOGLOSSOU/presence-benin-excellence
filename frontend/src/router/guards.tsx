@@ -7,12 +7,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: AdminRole[];
   requireAuth?: boolean;
+  redirectTo?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   allowedRoles = [],
   requireAuth = true,
+  redirectTo = "/login",
 }) => {
   const { user, token, isLoading } = useAuthStore();
   const location = useLocation();
@@ -25,10 +27,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  // Vérifier l'authentification
   if (requireAuth && !token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
+  // Vérifier les rôles
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
@@ -37,7 +41,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export const SystemAdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute allowedRoles={[AdminRole.SYSTEM_ADMIN]}>
+  <ProtectedRoute allowedRoles={[AdminRole.SYSTEM_ADMIN]} redirectTo="/system/login">
     {children}
   </ProtectedRoute>
 );

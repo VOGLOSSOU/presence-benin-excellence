@@ -1,6 +1,8 @@
 import { ProfileType } from '@/types/user.types';
 import { PresenceType } from '@/types/presence.types';
 
+export const API_BASE_URL = 'http://localhost:5000';
+
 export const COLORS = {
   PRIMARY: '#1877F2',
   SUCCESS: '#10B981',

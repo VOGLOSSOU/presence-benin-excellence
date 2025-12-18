@@ -1,127 +1,64 @@
 import { Router } from 'express';
 import {
-  createFormController,
-  getAllFormsController,
-  getFormByIdController,
-  updateFormController,
-  deleteFormController,
-  createIntervalController,
+  getAllFormTemplatesController,
+  getFormTemplateByIdController,
+  createFormTemplateController,
+  updateFormTemplateController,
+  deleteFormTemplateController,
+  toggleFormTemplateStatusController,
+  getPublicFormTemplatesController,
 } from './forms.controller';
-import {
-  addFieldController,
-  getFieldsByFormIdController,
-  updateFieldController,
-  deleteFieldController,
-} from './fields.controller';
-import { validate } from '../../middlewares/validate.middleware';
-import { authenticate, requireRole } from '../../middlewares/auth.middleware';
-import {
-  createFormSchema,
-  updateFormSchema,
-  createFieldSchema,
-  updateFieldSchema,
-  createIntervalSchema,
-} from '../../validators/form.validator';
-import { AdminRole } from '@prisma/client';
+import { authenticate, requireSuperAdmin } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
-// Toutes les routes nécessitent une authentification
+// Route publique pour récupérer les formulaires actifs d'une organisation (pour les visiteurs)
+/**
+ * GET /api/forms/public/{tenantId}
+ * Récupérer les formulaires actifs d'une organisation (public)
+ */
+router.get('/public/:tenantId', getPublicFormTemplatesController);
+
+// Toutes les autres routes formulaires nécessitent une authentification
 router.use(authenticate);
 
-// ===== ROUTES FORMULAIRES =====
+// Toutes les routes formulaires nécessitent le rôle SUPER_ADMIN
+router.use(requireSuperAdmin);
 
 /**
- * GET /api/forms
- * Obtenir tous les formulaires
+ * GET /api/admin/forms
+ * Récupérer tous les formulaires de l'organisation
  */
-router.get('/', getAllFormsController);
+router.get('/', getAllFormTemplatesController);
 
 /**
- * GET /api/forms/:id
- * Obtenir un formulaire par ID
+ * POST /api/admin/forms
+ * Créer un nouveau formulaire
  */
-router.get('/:id', getFormByIdController);
+router.post('/', createFormTemplateController);
 
 /**
- * POST /api/forms
- * Créer un nouveau formulaire (SUPER_ADMIN uniquement)
+ * GET /api/admin/forms/{formId}
+ * Récupérer un formulaire par ID
  */
-router.post(
-  '/',
-  requireRole(AdminRole.SUPER_ADMIN),
-  validate(createFormSchema),
-  createFormController
-);
+router.get('/:formId', getFormTemplateByIdController);
 
 /**
- * PUT /api/forms/:id
- * Mettre à jour un formulaire (SUPER_ADMIN uniquement)
+ * PUT /api/admin/forms/{formId}
+ * Mettre à jour un formulaire
  */
-router.put(
-  '/:id',
-  requireRole(AdminRole.SUPER_ADMIN),
-  validate(updateFormSchema),
-  updateFormController
-);
+router.put('/:formId', updateFormTemplateController);
 
 /**
- * DELETE /api/forms/:id
- * Supprimer un formulaire (SUPER_ADMIN uniquement)
+ * PUT /api/admin/forms/{formId}/toggle-status
+ * Activer/Désactiver un formulaire
  */
-router.delete('/:id', requireRole(AdminRole.SUPER_ADMIN), deleteFormController);
-
-// ===== ROUTES INTERVALLES =====
+router.put('/:formId/toggle-status', toggleFormTemplateStatusController);
 
 /**
- * POST /api/forms/:id/interval
- * Créer un intervalle pour un formulaire ARRIVAL_DEPARTURE
+ * DELETE /api/admin/forms/{formId}
+ * Supprimer un formulaire
  */
-router.post(
-  '/:id/interval',
-  requireRole(AdminRole.SUPER_ADMIN),
-  validate(createIntervalSchema),
-  createIntervalController
-);
-
-// ===== ROUTES CHAMPS =====
-
-/**
- * GET /api/forms/:id/fields
- * Obtenir tous les champs d'un formulaire
- */
-router.get('/:id/fields', getFieldsByFormIdController);
-
-/**
- * POST /api/forms/:id/fields
- * Ajouter un champ à un formulaire
- */
-router.post(
-  '/:id/fields',
-  requireRole(AdminRole.SUPER_ADMIN),
-  validate(createFieldSchema),
-  addFieldController
-);
-
-/**
- * PUT /api/forms/fields/:fieldId
- * Mettre à jour un champ
- */
-router.put(
-  '/fields/:fieldId',
-  requireRole(AdminRole.SUPER_ADMIN),
-  validate(updateFieldSchema),
-  updateFieldController
-);
-
-/**
- * DELETE /api/forms/fields/:fieldId
- * Supprimer un champ
- */
-router.delete(
-  '/fields/:fieldId',
-  requireRole(AdminRole.SUPER_ADMIN),
-  deleteFieldController
-);
+router.delete('/:formId', deleteFormTemplateController);
 
 export default router;

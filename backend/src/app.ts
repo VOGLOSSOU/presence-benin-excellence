@@ -46,15 +46,16 @@ app.get('/health', (_req, res) => {
 // ===== ROUTES API =====
 // TODO: Importer et utiliser les routes des modules
 import authRoutes from './modules/auth/auth.routes';
-import formsRoutes from './modules/forms/forms.routes';
 import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 import presenceRoutes from './modules/presence/presence.routes';
 import setupRoutes from './modules/setup/setup.routes';
+import adminRoutes from './modules/admin/admin.routes';
+import usersRoutes from './modules/users/users.routes';
+import formsRoutes from './modules/forms/forms.routes';
 // import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 // import presenceRoutes from './modules/presence/presence.routes';
 // import formsRoutes from './modules/forms/forms.routes';
 // import usersRoutes from './modules/users/users.routes';
-// import adminRoutes from './modules/admin/admin.routes';
 
 
 app.use('/api/auth', authRoutes);
@@ -62,12 +63,14 @@ app.use('/api/forms', formsRoutes);
 app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/presence', presenceRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/users', usersRoutes);
+app.use('/api/admin/forms', formsRoutes);
 
 // app.use('/api/enrollment', enrollmentRoutes);
 // app.use('/api/presence', presenceRoutes);
 // app.use('/api/forms', formsRoutes);
 // app.use('/api/users', usersRoutes);
-// app.use('/api/admin', adminRoutes);
 
 // ===== GESTION DES ERREURS =====
 app.use(notFoundHandler);   // Route 404

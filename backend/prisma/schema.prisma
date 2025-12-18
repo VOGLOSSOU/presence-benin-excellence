@@ -27,6 +27,11 @@ enum FormType {
   ARRIVAL_DEPARTURE
 }
 
+enum FormPurpose {
+  ENROLLMENT      // Formulaire d'enregistrement visiteurs
+  PRESENCE        // Formulaire de règles présence
+}
+
 enum FieldType {
   TEXT
   NUMBER
@@ -95,11 +100,12 @@ model FormTemplate {
   tenantId    String        @map("tenant_id") @db.Uuid
   name        String
   description String?
-  type        FormType
+  purpose     FormPurpose   // ENROLLMENT ou PRESENCE
+  type        FormType?     // Optionnel : null pour ENROLLMENT, défini pour PRESENCE
   active      Boolean       @default(true)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
-  
+
   // Relations
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   fields      FieldTemplate[]
@@ -107,6 +113,8 @@ model FormTemplate {
   presences   Presence[]
   intervals   ArrivalDepartureInterval[]
 
+  // Contrainte : Un seul formulaire actif par purpose par tenant
+  @@unique([tenantId, purpose, active])
   @@map("form_templates")
 }
 

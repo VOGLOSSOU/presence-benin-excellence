@@ -1,24 +1,89 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, Home, Calendar, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircle, Clock, Home, User } from 'lucide-react';
 import VisitorLayout from '@/layouts/VisitorLayout';
 
 export default function PresencePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [presenceData, setPresenceData] = useState<any>(null);
+  const [organization, setOrganization] = useState<any>(null);
 
-  // Simulation de données
-  const presenceData = {
+  // Charger les données au montage du composant
+  useEffect(() => {
+    // Récupérer les données depuis l'état de navigation ou sessionStorage
+    let { presenceData: presenceResult, organization: orgResult } = location.state || {};
+
+    // Si pas de données dans location.state, essayer sessionStorage
+    if (!presenceResult) {
+      const storedResult = sessionStorage.getItem('presenceResult');
+      const storedOrg = sessionStorage.getItem('presenceOrganization');
+
+      if (storedResult) {
+        presenceResult = JSON.parse(storedResult);
+        orgResult = storedOrg ? JSON.parse(storedOrg) : null;
+
+        // Nettoyer sessionStorage après récupération
+        sessionStorage.removeItem('presenceResult');
+        sessionStorage.removeItem('presenceOrganization');
+      }
+    }
+
+    if (presenceResult) {
+      setPresenceData(presenceResult);
+    }
+    if (orgResult) {
+      setOrganization(orgResult);
+    }
+  }, [location.state]);
+
+  // Formater les données de présence quand elles sont disponibles
+  const formattedPresenceData = presenceData ? {
+    type: presenceData.presence.presenceType,
+    timestamp: new Date(presenceData.presence.timestamp),
+    user: presenceData.presence.user ? {
+      uuid: presenceData.presence.user.uuidCode,
+      firstName: presenceData.presence.user.firstName,
+      lastName: presenceData.presence.user.lastName,
+      title: presenceData.presence.user.title,
+      institution: presenceData.presence.user.institution,
+      phone: presenceData.presence.user.phone,
+      email: presenceData.presence.user.email
+    } : {
+      uuid: 'N/A',
+      firstName: 'Utilisateur',
+      lastName: 'Inconnu',
+      title: 'N/A',
+      institution: undefined,
+      phone: undefined,
+      email: undefined
+    },
+    form: presenceData.presence.formTemplate ? {
+      name: presenceData.presence.formTemplate.name,
+      type: presenceData.presence.formTemplate.type
+    } : {
+      name: 'Formulaire inconnu',
+      type: undefined
+    }
+  } : {
     type: 'ARRIVAL',
     timestamp: new Date(),
     user: {
-      uuid: 'BE-A658VGT',
-      firstName: 'Nathan',
-      lastName: 'VOGLOSSOU'
+      uuid: 'BE-XXXXXX',
+      firstName: 'Utilisateur',
+      lastName: 'Test',
+      title: 'N/A',
+      institution: undefined,
+      phone: undefined,
+      email: undefined
     },
     form: {
-      name: 'Formulaire Étudiant Cotonou'
+      name: 'Formulaire de test',
+      type: undefined
     }
   };
+
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('fr-FR', {
@@ -49,8 +114,19 @@ export default function PresencePage() {
             Présence enregistrée avec succès !
           </h1>
           <p className="text-xl text-gray-600">
-            Votre arrivée a été validée dans notre système
+            Votre {formattedPresenceData.type === 'ARRIVAL' ? 'arrivée' : formattedPresenceData.type === 'DEPARTURE' ? 'départ' : 'présence'} a été validée dans notre système
           </p>
+          {organization && (
+            <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+              <div className="flex items-center justify-center space-x-3">
+                <User className="w-6 h-6 text-blue-600" />
+                <div className="text-center">
+                  <p className="text-sm text-blue-700 font-medium">Organisation</p>
+                  <p className="text-lg font-bold text-blue-900">{organization.name}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Presence Details Card */}
@@ -66,30 +142,42 @@ export default function PresencePage() {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Nom:</span>
-                    <span className="font-semibold">{presenceData.user.lastName}</span>
+                    <span className="font-semibold">{formattedPresenceData.user.lastName}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Prénoms:</span>
-                    <span className="font-semibold">{presenceData.user.firstName}</span>
+                    <span className="font-semibold">{formattedPresenceData.user.firstName}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-gray-600">Titre:</span>
+                    <span className="font-semibold">{formattedPresenceData.user.title || 'N/A'}</span>
+                  </div>
+                  {formattedPresenceData.user.institution && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Institution:</span>
+                      <span className="font-semibold">{formattedPresenceData.user.institution}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
                     <span className="text-gray-600">UUID:</span>
-                    <span className="font-mono font-semibold text-primary-600">{presenceData.user.uuid}</span>
+                    <span className="font-mono font-semibold text-primary-600">{formattedPresenceData.user.uuid}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Form Info */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-primary-600" />
-                  Formulaire utilisé
-                </h3>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="font-semibold text-blue-900">{presenceData.form.name}</p>
-                  <p className="text-sm text-blue-700 mt-1">Formulaire actif pour les étudiants</p>
+              {/* Organization Info */}
+              {organization && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <User className="w-5 h-5 mr-2 text-primary-600" />
+                    Organisation
+                  </h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="font-semibold text-blue-900">{organization.name}</p>
+                    <p className="text-sm text-blue-700 mt-1">Formulaire utilisé: {formattedPresenceData.form.name}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Presence Info */}
@@ -103,16 +191,19 @@ export default function PresencePage() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Type:</span>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                      {presenceData.type === 'ARRIVAL' ? 'Arrivée' : 'Départ'}
+                      {formattedPresenceData.type === 'ARRIVAL' ? 'Arrivée' :
+                       formattedPresenceData.type === 'DEPARTURE' ? 'Départ' :
+                       formattedPresenceData.type === 'SIMPLE' ? 'Présence simple' :
+                       formattedPresenceData.type || 'Inconnu'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Date:</span>
-                    <span className="font-semibold">{formatDate(presenceData.timestamp)}</span>
+                    <span className="font-semibold">{formatDate(formattedPresenceData.timestamp)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Heure:</span>
-                    <span className="font-semibold">{formatTime(presenceData.timestamp)}</span>
+                    <span className="font-semibold">{formatTime(formattedPresenceData.timestamp)}</span>
                   </div>
                 </div>
               </div>
@@ -142,20 +233,13 @@ export default function PresencePage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex justify-center">
           <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors shadow-md"
           >
             <Home className="w-5 h-5 mr-2" />
             Retour à la page précédente
-          </button>
-          <button
-            onClick={() => alert('Historique simulé: 3 présences cette semaine')}
-            className="inline-flex items-center px-8 py-4 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Calendar className="w-5 h-5 mr-2" />
-            Voir mon historique
           </button>
         </div>
 

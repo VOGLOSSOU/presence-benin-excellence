@@ -80,12 +80,13 @@ model User {
   lastName        String           @map("last_name")
   firstName       String           @map("first_name")
   title           UserTitle
+  institution     String?          // École, université, entreprise/service (optionnel)
   phone           String?
   email           String?
   status          UserStatus       @default(ACTIF)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
-  
+
   // Relations
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   fieldValues     UserFieldValue[]
@@ -127,7 +128,8 @@ model FieldTemplate {
   isRequired     Boolean       @default(false) @map("is_required")
   options        Json?         // Pour les selects: ["option1", "option2"]
   order          Int           @default(0)
-  
+  systemField    String?       // Champ système associé (lastName, firstName, etc.)
+
   // Relations
   formTemplate   FormTemplate  @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
   fieldValues    UserFieldValue[]

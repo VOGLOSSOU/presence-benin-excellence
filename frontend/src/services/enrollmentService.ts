@@ -44,7 +44,7 @@ export class EnrollmentService {
    */
   async enrollUser(enrollmentData: EnrollmentRequest): Promise<EnrollmentResponse> {
     // Pour l'enregistrement, on n'utilise pas le token JWT car c'est public
-    const response = await fetch(`${this.api['baseURL']}/enrollment`, {
+    const response = await fetch(`${this.api['baseURL']}/api/enrollment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export class EnrollmentService {
     title: string;
     createdAt: string;
   }> {
-    const response = await fetch(`${this.api['baseURL']}/users/uuid/${uuid}`, {
+    const response = await fetch(`${this.api['baseURL']}/api/users/uuid/${uuid}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ export class EnrollmentService {
       name: string;
     };
   }>> {
-    const response = await fetch(`${this.api['baseURL']}/presence/${uuid}`, {
+    const response = await fetch(`${this.api['baseURL']}/api/presence/${uuid}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

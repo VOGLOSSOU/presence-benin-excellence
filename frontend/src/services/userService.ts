@@ -78,9 +78,18 @@ export const toggleUserStatus = async (userId: string): Promise<User> => {
   return response.data!;
 };
 
+/**
+ * Récupérer un utilisateur par UUID (pour les visiteurs)
+ */
+export const getUserByUUID = async (uuid: string): Promise<User> => {
+  const response = await apiService.get<User>(`/api/users/by-uuid/${uuid}`);
+  return response.data!;
+};
+
 export const userService = {
   getAllUsers,
   getUserById,
+  getUserByUUID,
   createUser,
   updateUser,
   deleteUser,

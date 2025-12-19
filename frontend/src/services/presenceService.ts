@@ -37,16 +37,16 @@ export class PresenceService {
    * Enregistrer une présence
    */
   async recordPresence(presenceData: RecordPresenceRequest): Promise<RecordPresenceResponse> {
-    const response = await this.api.post<{ data: RecordPresenceResponse }>('/presence', presenceData);
-    return response.data?.data!;
+    const response = await this.api.post<RecordPresenceResponse>('/api/presence', presenceData);
+    return response.data!;
   }
 
   /**
    * Récupérer l'historique des présences d'un utilisateur
    */
   async getUserPresences(uuid: string): Promise<PresenceRecord[]> {
-    const response = await this.api.get<{ data: PresenceRecord[] }>(`/presence/${uuid}`);
-    return response.data?.data || [];
+    const response = await this.api.get<PresenceRecord[]>(`/api/presence/${uuid}`);
+    return response.data || [];
   }
 
   /**

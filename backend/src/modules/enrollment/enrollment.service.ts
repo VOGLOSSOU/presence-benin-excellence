@@ -7,6 +7,8 @@ import { EnrollmentRequest } from './enrollment.types';
  * Enrôler un nouveau visiteur
  */
 export const enrollUserService = async (data: EnrollmentRequest) => {
+  console.log('🔍 [enrollUserService] Données reçues:', JSON.stringify(data, null, 2));
+
   // 1. Vérifier que le formulaire existe et est actif
   const formTemplate = await prisma.formTemplate.findUnique({
     where: { id: data.formTemplateId },
@@ -15,6 +17,8 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
       tenant: true,  // ← NOUVEAU : Récupérer le tenant du formulaire
     },
   });
+
+  console.log('🔍 [enrollUserService] Formulaire trouvé:', formTemplate ? 'OUI' : 'NON');
 
   if (!formTemplate) {
     throw new NotFoundError('Form template not found');
@@ -31,16 +35,24 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
   const requiredFields = formTemplate.fields.filter((f) => f.isRequired);
   const providedFieldIds = data.fieldValues.map((fv) => fv.fieldTemplateId);
 
+  console.log('🔍 [enrollUserService] Champs requis:', requiredFields.map(f => ({ id: f.id, label: f.label })));
+  console.log('🔍 [enrollUserService] Champs fournis:', providedFieldIds);
+
   for (const requiredField of requiredFields) {
     if (!providedFieldIds.includes(requiredField.id)) {
+      console.log('❌ [enrollUserService] Champ requis manquant:', requiredField.label);
       throw new BadRequestError(`Required field '${requiredField.label}' is missing`);
     }
   }
 
   // 3. Valider que tous les champs fournis existent dans le formulaire
   const validFieldIds = formTemplate.fields.map((f) => f.id);
+  console.log('🔍 [enrollUserService] IDs de champs valides:', validFieldIds);
+
   for (const fieldValue of data.fieldValues) {
+    console.log('🔍 [enrollUserService] Vérification champ:', fieldValue.fieldTemplateId, 'valeur:', fieldValue.value);
     if (!validFieldIds.includes(fieldValue.fieldTemplateId)) {
+      console.log('❌ [enrollUserService] ID de champ invalide:', fieldValue.fieldTemplateId);
       throw new BadRequestError(`Invalid field ID: ${fieldValue.fieldTemplateId}`);
     }
   }
@@ -58,6 +70,7 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
         lastName: data.lastName,
         firstName: data.firstName,
         title: data.title,
+        institution: data.institution,
         phone: data.phone,
         email: data.email,
       },
@@ -97,6 +110,7 @@ export const enrollUserService = async (data: EnrollmentRequest) => {
       lastName: user.lastName,
       firstName: user.firstName,
       title: user.title,
+      institution: (user as any).institution || undefined,
       phone: user.phone || undefined,
       email: user.email || undefined,
       fieldValues: userWithFields?.fieldValues.map((fv) => ({

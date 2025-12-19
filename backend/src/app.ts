@@ -66,6 +66,7 @@ app.use('/api/setup', setupRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/users', usersRoutes);
 app.use('/api/admin/forms', formsRoutes);
+app.use('/api/users', usersRoutes); // Routes publiques pour les utilisateurs
 
 // app.use('/api/enrollment', enrollmentRoutes);
 // app.use('/api/presence', presenceRoutes);

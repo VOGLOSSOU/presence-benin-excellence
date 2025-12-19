@@ -7,6 +7,7 @@ import {
   deleteFormTemplateService,
   toggleFormTemplateStatusService,
   getPublicFormTemplatesService,
+  getPublicFormTemplateByIdService,
 } from './forms.service';
 import { successResponse } from '../../utils/response.util';
 import { HTTP_STATUS } from '../../config/constants';
@@ -152,3 +153,32 @@ export const getPublicFormTemplatesController = async (
     next(error);
   }
 };
+
+/**
+ * Récupérer un formulaire spécifique d'une organisation (public)
+ * GET /api/forms/public/{tenantId}/{formId}
+ */
+export const getPublicFormTemplateByIdController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { tenantId, formId } = req.params;
+    const form = await getPublicFormTemplateByIdService(tenantId, formId);
+
+    if (!form) {
+      res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: 'Formulaire introuvable',
+      });
+      return;
+    }
+
+    successResponse(res, form, 'Formulaire récupéré avec succès');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// All controllers are already exported above

@@ -49,6 +49,7 @@ export const getAllFormTemplatesService = async (tenantId: string): Promise<Form
       isRequired: field.isRequired,
       options: field.options ? (field.options as string[]) : undefined,
       order: field.order,
+      systemField: field.systemField || undefined,
     })),
     intervals: form.intervals.map((interval: any) => ({
       id: interval.id,
@@ -194,6 +195,7 @@ export const createFormTemplateService = async (
       isRequired: field.isRequired,
       options: field.options ? (field.options as string[]) : undefined,
       order: field.order,
+      systemField: field.systemField || undefined,
     })),
     intervals: (form as any).intervals.map((interval: any) => ({
       id: interval.id,
@@ -228,6 +230,47 @@ export const getPublicFormTemplatesService = async (tenantId: string) => {
   });
 
   return formTemplates;
+};
+
+/**
+ * Récupérer un formulaire spécifique d'une organisation (pour les visiteurs)
+ */
+export const getPublicFormTemplateByIdService = async (tenantId: string, formId: string) => {
+  const form = await prisma.formTemplate.findFirst({
+    where: {
+      id: formId,
+      tenantId,
+      active: true, // Seulement les formulaires actifs
+    },
+    include: {
+      fields: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  if (!form) return null;
+
+  return {
+    id: (form as any).id,
+    tenantId: (form as any).tenantId,
+    name: (form as any).name,
+    description: (form as any).description || undefined,
+    purpose: (form as any).purpose,
+    type: (form as any).type || undefined,
+    active: (form as any).active,
+    createdAt: (form as any).createdAt.toISOString(),
+    fields: (form as any).fields.map((field: any) => ({
+      id: field.id,
+      formTemplateId: field.formTemplateId,
+      label: field.label,
+      fieldType: field.fieldType,
+      isRequired: field.isRequired,
+      options: field.options ? (field.options as string[]) : undefined,
+      order: field.order,
+      systemField: field.systemField || undefined,
+    })),
+  };
 };
 
 /**
@@ -277,7 +320,7 @@ export const updateFormTemplateService = async (
     updatedAt: updatedForm.updatedAt.toISOString(),
     fieldsCount: updatedForm.fields.length,
     usagesCount: updatedForm._count.presences,
-    fields: updatedForm.fields.map(field => ({
+    fields: updatedForm.fields.map((field: any) => ({
       id: field.id,
       formTemplateId: field.formTemplateId,
       label: field.label,
@@ -285,6 +328,7 @@ export const updateFormTemplateService = async (
       isRequired: field.isRequired,
       options: field.options ? (field.options as string[]) : undefined,
       order: field.order,
+      systemField: field.systemField || undefined,
     })),
     intervals: updatedForm.intervals.map(interval => ({
       id: interval.id,
@@ -373,6 +417,7 @@ export const toggleFormTemplateStatusService = async (
       isRequired: field.isRequired,
       options: field.options ? (field.options as string[]) : undefined,
       order: field.order,
+      systemField: field.systemField || undefined,
     })),
     intervals: (updatedForm as any).intervals.map((interval: any) => ({
       id: interval.id,

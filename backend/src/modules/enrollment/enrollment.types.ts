@@ -4,6 +4,7 @@ export interface EnrollmentRequest {
   lastName: string;
   firstName: string;
   title: UserTitle;
+  institution?: string;
   phone?: string;
   email?: string;
   formTemplateId: string;
@@ -22,6 +23,7 @@ export interface EnrollmentResponse {
     lastName: string;
     firstName: string;
     title: UserTitle;
+    institution?: string;
     phone?: string;
     email?: string;
   };

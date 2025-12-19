@@ -1,53 +1,73 @@
-import { ProfileType } from '@/types/user.types';
-import { PresenceType } from '@/types/presence.types';
+// Constantes frontend
 
+// URL de base de l'API
 export const API_BASE_URL = 'http://localhost:5000';
 
-export const COLORS = {
-  PRIMARY: '#1877F2',
-  SUCCESS: '#10B981',
-  ERROR: '#EF4444',
-  WARNING: '#F59E0B',
-  GRAY: '#6B7280',
-} as const;
-
-export const PROFILE_TYPE_LABELS: Record<ProfileType, string> = {
-  [ProfileType.STUDENT]: 'Étudiant',
-  [ProfileType.PROFESSIONAL]: 'Professionnel',
-  [ProfileType.PUPIL]: 'Élève',
-  [ProfileType.OTHER]: 'Autre',
-};
-
-export const PRESENCE_TYPE_LABELS: Record<PresenceType, string> = {
-  [PresenceType.SIMPLE]: 'Présence simple',
-  [PresenceType.ARRIVAL_DEPARTURE]: 'Arrivée/Départ',
-};
-
-export const UUID_PATTERN = /^BE-[A-Z0-9]{7}$/;
-
+// Endpoints API
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
   },
   SETUP: {
-    CREATE_ORGANIZATION: '/api/setup/organization',
-    GET_ORGANIZATIONS: '/api/setup/organizations',
+    ORGANIZATIONS: '/api/setup/organizations',
+    STATS: '/api/setup/stats',
   },
-  FORMS: {
-    LIST: '/api/forms',
-    CREATE: '/api/forms',
-    GET_BY_ID: (id: string) => `/api/forms/${id}`,
-    UPDATE: (id: string) => `/api/forms/${id}`,
-    DELETE: (id: string) => `/api/forms/${id}`,
-    ADD_FIELD: (id: string) => `/api/forms/${id}/fields`,
-    CREATE_INTERVAL: (id: string) => `/api/forms/${id}/interval`,
+  ADMIN: {
+    STATS: '/api/admin/stats',
+    ACTIVITY: '/api/admin/activity',
   },
-  ENROLLMENT: {
-    REGISTER: '/api/enrollment',
-  },
-  PRESENCE: {
-    MARK: '/api/presence',
-    HISTORY: (uuid: string) => `/api/presence/${uuid}`,
-  },
+  FORMS: '/api/forms',
+  USERS: '/api/admin/users',
+  PRESENCE: '/api/presence',
+  ENROLLMENT: '/api/enrollment',
 } as const;
+
+// Champs système disponibles pour les formulaires d'enregistrement
+export const SYSTEM_FIELDS = [
+  {
+    key: 'lastName',
+    label: 'Nom',
+    fieldType: 'TEXT' as const,
+    isRequired: true,
+    description: 'Nom de famille du visiteur'
+  },
+  {
+    key: 'firstName',
+    label: 'Prénoms',
+    fieldType: 'TEXT' as const,
+    isRequired: true,
+    description: 'Prénoms du visiteur'
+  },
+  {
+    key: 'title',
+    label: 'Titre/Profession',
+    fieldType: 'SELECT' as const,
+    isRequired: true,
+    description: 'Titre ou profession du visiteur',
+    options: ['ETUDIANT', 'PROFESSIONNEL', 'ELEVE', 'AUTRE']
+  },
+  {
+    key: 'institution',
+    label: 'École/Université/Entreprise',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'École, université ou entreprise d\'origine'
+  },
+  {
+    key: 'phone',
+    label: 'Téléphone',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'Numéro de téléphone'
+  },
+  {
+    key: 'email',
+    label: 'Email',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'Adresse email'
+  }
+];
+
+export type SystemFieldKey = typeof SYSTEM_FIELDS[number]['key'];

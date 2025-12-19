@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import {
   getAllUsersService,
   getUserByIdService,
+  getUserByUUIDService,
   createUserService,
   updateUserService,
   deleteUserService,
@@ -23,6 +24,33 @@ export const getAllUsersController = async (
     const tenantId = (req as any).user.tenantId;
     const users = await getAllUsersService(tenantId);
     successResponse(res, users, 'Utilisateurs récupérés avec succès');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Récupérer un utilisateur par UUID (public)
+ * GET /api/users/by-uuid/{uuid}
+ */
+export const getUserByUUIDController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { uuid } = req.params;
+    const user = await getUserByUUIDService(uuid);
+
+    if (!user) {
+      res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: 'Utilisateur introuvable',
+      });
+      return;
+    }
+
+    successResponse(res, user, 'Utilisateur récupéré avec succès');
   } catch (error) {
     next(error);
   }

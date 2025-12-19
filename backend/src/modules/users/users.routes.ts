@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAllUsersController,
   getUserByIdController,
+  getUserByUUIDController,
   createUserController,
   updateUserController,
   deleteUserController,
@@ -11,10 +12,13 @@ import { authenticate, requireSuperAdmin } from '../../middlewares/auth.middlewa
 
 const router = Router();
 
-// Toutes les routes utilisateurs nécessitent une authentification
+// Route publique pour récupérer un utilisateur par UUID (pour les visiteurs)
+router.get('/by-uuid/:uuid', getUserByUUIDController);
+
+// Toutes les autres routes utilisateurs nécessitent une authentification
 router.use(authenticate);
 
-// Toutes les routes utilisateurs nécessitent le rôle SUPER_ADMIN
+// Toutes les autres routes utilisateurs nécessitent le rôle SUPER_ADMIN
 router.use(requireSuperAdmin);
 
 /**

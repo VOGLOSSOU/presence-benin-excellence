@@ -23,6 +23,7 @@ export interface CreateFieldTemplateRequest {
   isRequired?: boolean;
   options?: string[];
   order?: number;
+  systemField?: string; // Champ système associé
 }
 
 export interface UpdateFieldTemplateRequest {
@@ -31,6 +32,7 @@ export interface UpdateFieldTemplateRequest {
   isRequired?: boolean;
   options?: string[];
   order?: number;
+  systemField?: string;
 }
 
 export interface CreateIntervalRequest {
@@ -62,6 +64,7 @@ export interface FieldTemplateResponse {
   isRequired: boolean;
   options?: string[];
   order: number;
+  systemField?: string;
 }
 
 export interface IntervalResponse {

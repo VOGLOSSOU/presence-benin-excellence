@@ -71,3 +71,52 @@ export const HTTP_STATUS = {
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
 };
+
+// Champs système disponibles pour les formulaires d'enregistrement
+export const SYSTEM_FIELDS = {
+  lastName: {
+    key: 'lastName',
+    label: 'Nom',
+    fieldType: 'TEXT' as const,
+    isRequired: true,
+    description: 'Nom de famille du visiteur'
+  },
+  firstName: {
+    key: 'firstName',
+    label: 'Prénoms',
+    fieldType: 'TEXT' as const,
+    isRequired: true,
+    description: 'Prénoms du visiteur'
+  },
+  title: {
+    key: 'title',
+    label: 'Titre/Profession',
+    fieldType: 'SELECT' as const,
+    isRequired: true,
+    description: 'Titre ou profession du visiteur',
+    options: ['ETUDIANT', 'PROFESSIONNEL', 'ELEVE', 'AUTRE']
+  },
+  institution: {
+    key: 'institution',
+    label: 'École/Université/Entreprise',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'École, université ou entreprise d\'origine'
+  },
+  phone: {
+    key: 'phone',
+    label: 'Téléphone',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'Numéro de téléphone'
+  },
+  email: {
+    key: 'email',
+    label: 'Email',
+    fieldType: 'TEXT' as const,
+    isRequired: false,
+    description: 'Adresse email'
+  }
+} as const;
+
+export type SystemFieldKey = keyof typeof SYSTEM_FIELDS;

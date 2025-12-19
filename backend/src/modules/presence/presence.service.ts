@@ -3,6 +3,7 @@ import { NotFoundError, BadRequestError } from '../../shared/errors';
 import { RecordPresenceRequest } from './presence.types';
 import { getStartOfDay, getEndOfDay, getCurrentTime, isTimeInInterval } from '../../utils/date.util';
 import { PresenceType } from '@prisma/client';
+import { env } from '../../config/env';
 
 /**
  * Déterminer le type de présence (SIMPLE, ARRIVAL, DEPARTURE)
@@ -104,8 +105,8 @@ export const recordPresenceService = async (data: RecordPresenceRequest) => {
     throw new BadRequestError('Form template is not active');
   }
 
-  // 3. Si ARRIVAL_DEPARTURE, vérifier qu'on est dans l'intervalle horaire
-  if (formTemplate.type === 'ARRIVAL_DEPARTURE' && formTemplate.intervals.length > 0) {
+  // 3. Si ARRIVAL_DEPARTURE, vérifier qu'on est dans l'intervalle horaire (sauf en développement)
+  if (formTemplate.type === 'ARRIVAL_DEPARTURE' && formTemplate.intervals.length > 0 && env.NODE_ENV !== 'development') {
     const interval = formTemplate.intervals[0];
     const currentTime = getCurrentTime();
 
@@ -133,6 +134,16 @@ export const recordPresenceService = async (data: RecordPresenceRequest) => {
           uuidCode: true,
           firstName: true,
           lastName: true,
+          title: true,
+          institution: true,
+          phone: true,
+          email: true,
+        },
+      },
+      formTemplate: {
+        select: {
+          name: true,
+          type: true,
         },
       },
     },

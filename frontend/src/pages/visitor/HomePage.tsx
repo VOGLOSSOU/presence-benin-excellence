@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Clock, UserPlus, CheckCircle, Users, Calendar, Shield, FileText, ArrowRight } from 'lucide-react';
 import VisitorLayout from '@/layouts/VisitorLayout';
-import { setupService, formService } from '@/services';
+import { setupService, formService, presenceService } from '@/services';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -14,6 +14,9 @@ export default function HomePage() {
   const [hasForms, setHasForms] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [uuidInput, setUuidInput] = useState('');
+  const [recordingPresence, setRecordingPresence] = useState(false);
+  const [presenceResult, setPresenceResult] = useState<any>(null);
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -101,6 +104,49 @@ export default function HomePage() {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const handleRecordPresence = async () => {
+    if (!uuidInput.trim() || !presenceForm) {
+      alert('Veuillez entrer votre UUID');
+      return;
+    }
+
+    setRecordingPresence(true);
+    try {
+      console.log('🎯 [HomePage] Enregistrement présence:', {
+        uuidCode: uuidInput.trim(),
+        formTemplateId: presenceForm.id
+      });
+
+      console.log('🎯 [HomePage] Avant appel API presence');
+
+      const result = await presenceService.recordPresence({
+        uuidCode: uuidInput.trim(),
+        formTemplateId: presenceForm.id
+      });
+
+      console.log('✅ [HomePage] Présence enregistrée:', result);
+
+      // Stocker le résultat pour la page de succès (dans sessionStorage au cas où)
+      setPresenceResult(result);
+      sessionStorage.setItem('presenceResult', JSON.stringify(result));
+      sessionStorage.setItem('presenceOrganization', JSON.stringify(organization));
+
+      // Rediriger vers la page de succès avec les données
+      navigate('/presence', {
+        state: {
+          presenceData: result, // ← result contient déjà { presence: {...}, message: "..." }
+          organization: organization
+        }
+      });
+
+    } catch (err) {
+      console.error('❌ [HomePage] Erreur enregistrement présence:', err);
+      alert(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement de présence');
+    } finally {
+      setRecordingPresence(false);
+    }
   };
 
   if (loading) {
@@ -218,13 +264,27 @@ export default function HomePage() {
                     </label>
                     <input
                       type="text"
+                      value={uuidInput}
+                      onChange={(e) => setUuidInput(e.target.value)}
                       placeholder="Ex: BE-XXXXXX"
                       className="w-full px-6 py-4 text-lg border-2 border-gray-300 rounded-xl focus:border-primary-600 focus:ring-4 focus:ring-primary-100 outline-none transition-all"
+                      disabled={recordingPresence}
                     />
                   </div>
 
-                  <button className="w-full bg-primary-600 text-white font-semibold py-4 rounded-xl hover:bg-primary-700 transform hover:scale-[1.02] transition-all shadow-lg">
-                    Valider ma présence
+                  <button
+                    onClick={handleRecordPresence}
+                    disabled={recordingPresence || !uuidInput.trim()}
+                    className="w-full bg-primary-600 text-white font-semibold py-4 rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all shadow-lg flex items-center justify-center"
+                  >
+                    {recordingPresence ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Enregistrement...
+                      </>
+                    ) : (
+                      'Valider ma présence'
+                    )}
                   </button>
                 </div>
               </div>
@@ -243,7 +303,7 @@ export default function HomePage() {
                       {enrollmentForm?.description || 'Si c\'est votre première fois, vous devez d\'abord vous enregistrer pour obtenir votre identifiant unique.'}
                     </p>
                     <Link
-                      to={orgCode ? `/org/${orgCode}/register` : '/register'}
+                      to={orgCode && enrollmentForm ? `/org/${orgCode}/register?formId=${enrollmentForm.id}` : '/register'}
                       className="text-blue-600 hover:text-blue-700 font-semibold hover:underline"
                     >
                       S'enregistrer →

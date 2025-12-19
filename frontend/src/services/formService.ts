@@ -28,6 +28,7 @@ export interface FieldTemplate {
   isRequired: boolean;
   options?: string[];
   order: number;
+  systemField?: string; // Champ système associé (lastName, firstName, etc.)
 }
 
 export interface Interval {
@@ -137,6 +138,14 @@ export const getPublicForms = async (tenantId: string): Promise<{
   return response.data!;
 };
 
+/**
+ * Récupérer un formulaire spécifique d'une organisation (pour les visiteurs)
+ */
+export const getPublicFormById = async (tenantId: string, formId: string): Promise<FormTemplate> => {
+  const response = await apiService.get<FormTemplate>(`/api/forms/public/${tenantId}/${formId}`);
+  return response.data!;
+};
+
 export const formService = {
   getAllForms,
   getFormById,
@@ -145,4 +154,5 @@ export const formService = {
   deleteForm,
   toggleFormStatus,
   getPublicForms,
+  getPublicFormById,
 };

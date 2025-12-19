@@ -104,6 +104,46 @@ export const getUserByIdService = async (userId: string, tenantId: string): Prom
 };
 
 /**
+ * Récupérer un utilisateur par UUID (pour les visiteurs)
+ */
+export const getUserByUUIDService = async (uuid: string): Promise<UserResponse | null> => {
+  const user = await prisma.user.findUnique({
+    where: { uuidCode: uuid },
+    include: {
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
+      _count: {
+        select: {
+          presences: true,
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    tenantId: user.tenantId,
+    uuidCode: user.uuidCode,
+    lastName: user.lastName,
+    firstName: user.firstName,
+    title: user.title,
+    phone: user.phone || undefined,
+    email: user.email || undefined,
+    status: user.status,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    presencesCount: user._count.presences,
+  };
+};
+
+/**
  * Créer un nouvel utilisateur
  */
 export const createUserService = async (

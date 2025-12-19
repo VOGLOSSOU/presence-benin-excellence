@@ -11,13 +11,14 @@ export const enrollmentSchema = z.object({
     title: z.nativeEnum(UserTitle, {
       errorMap: () => ({ message: 'Invalid title' }),
     }),
+    institution: z.string().optional(),
     phone: z.string().optional(),
     email: z.string().email('Invalid email format').optional(),
     formTemplateId: z.string().uuid('Invalid form ID'),
     fieldValues: z.array(
       z.object({
         fieldTemplateId: z.string().uuid('Invalid field ID'),
-        value: z.string().min(1, 'Field value is required'),
+        value: z.string(), // Permettre les chaînes vides pour les champs optionnels
       })
     ),
   }),

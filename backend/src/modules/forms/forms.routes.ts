@@ -7,6 +7,7 @@ import {
   deleteFormTemplateController,
   toggleFormTemplateStatusController,
   getPublicFormTemplatesController,
+  getPublicFormTemplateByIdController,
 } from './forms.controller';
 import { authenticate, requireSuperAdmin } from '../../middlewares/auth.middleware';
 
@@ -18,6 +19,12 @@ const router = Router();
  * Récupérer les formulaires actifs d'une organisation (public)
  */
 router.get('/public/:tenantId', getPublicFormTemplatesController);
+
+/**
+ * GET /api/forms/public/{tenantId}/{formId}
+ * Récupérer un formulaire spécifique d'une organisation (public)
+ */
+router.get('/public/:tenantId/:formId', getPublicFormTemplateByIdController);
 
 // Toutes les autres routes formulaires nécessitent une authentification
 router.use(authenticate);

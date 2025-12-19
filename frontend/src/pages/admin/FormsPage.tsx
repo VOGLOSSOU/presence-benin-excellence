@@ -19,13 +19,16 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { formService, FormTemplate, FormType, FieldType, FormPurpose } from '@/services/formService';
+import SystemFieldSelector, { SystemField } from '@/components/common/SystemFieldSelector';
+import { SYSTEM_FIELDS } from '@/utils/constants';
 
 interface CreateFormData {
   name: string;
   description: string;
   purpose: FormPurpose;
   type?: FormType; // Optionnel pour ENROLLMENT
-  fields: CreateFieldData[];
+  selectedSystemFields: string[]; // Pour les formulaires d'enregistrement
+  fields: CreateFieldData[]; // Gardé pour compatibilité avec les formulaires de présence
   intervals: CreateIntervalData[];
 }
 
@@ -62,6 +65,7 @@ export default function FormsPage() {
     description: '',
     purpose: 'ENROLLMENT', // Valeur par défaut
     type: undefined, // Sera défini seulement pour PRESENCE
+    selectedSystemFields: [], // Champs système sélectionnés
     fields: [],
     intervals: []
   });
@@ -103,15 +107,11 @@ export default function FormsPage() {
   const handleCreateForm = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation : vérifier qu'un type de présence est sélectionné seulement pour PRESENCE
-    if (createForm.purpose === 'PRESENCE' && !createForm.type) {
-      setCreateError('Veuillez sélectionner un type de présence');
-      return;
-    }
+    // Validation : le type de présence est automatiquement défini à ARRIVAL_DEPARTURE chez BENIN EXCELLENCE
 
-    // Validation : vérifier qu'il y a au moins un champ pour les formulaires d'enregistrement
-    if (createForm.purpose === 'ENROLLMENT' && createForm.fields.length === 0) {
-      setCreateError('Veuillez ajouter au moins un champ pour le formulaire d\'enregistrement');
+    // Validation : vérifier qu'il y a au moins un champ système sélectionné pour les formulaires d'enregistrement
+    if (createForm.purpose === 'ENROLLMENT' && createForm.selectedSystemFields.length === 0) {
+      setCreateError('Veuillez sélectionner au moins un champ système pour le formulaire d\'enregistrement');
       return;
     }
 
@@ -119,7 +119,25 @@ export default function FormsPage() {
     setCreateError('');
 
     try {
-      const newForm = await formService.createForm(createForm);
+      // Pour les formulaires d'enregistrement, convertir les champs système sélectionnés en champs de formulaire
+      let formDataToSend = { ...createForm };
+
+      if (createForm.purpose === 'ENROLLMENT') {
+        formDataToSend.fields = createForm.selectedSystemFields.map((fieldKey, index) => {
+          const systemField = SYSTEM_FIELDS.find(f => f.key === fieldKey);
+          if (!systemField) throw new Error(`Champ système ${fieldKey} non trouvé`);
+          return {
+            label: systemField.label,
+            fieldType: systemField.fieldType,
+            isRequired: systemField.isRequired,
+            options: systemField.options || [],
+            order: index,
+            systemField: fieldKey
+          };
+        });
+      }
+
+      const newForm = await formService.createForm(formDataToSend);
       setForms(prev => [newForm, ...prev]);
       setShowCreateModal(false);
       setCreateForm({
@@ -127,6 +145,7 @@ export default function FormsPage() {
         description: '',
         purpose: 'ENROLLMENT',
         type: undefined,
+        selectedSystemFields: [],
         fields: [],
         intervals: []
       });
@@ -603,7 +622,7 @@ export default function FormsPage() {
                             checked={createForm.purpose === 'PRESENCE'}
                             onChange={(e) => {
                               const newPurpose = e.target.value as FormPurpose;
-                              const newType = newPurpose === 'PRESENCE' ? 'SIMPLE_PRESENCE' : undefined;
+                              const newType = newPurpose === 'PRESENCE' ? 'ARRIVAL_DEPARTURE' : undefined; // Toujours arrivée/départ chez BENIN EXCELLENCE
                               const newFields = newPurpose === 'PRESENCE' ? [{
                                 label: 'UUID du visiteur',
                                 fieldType: 'TEXT' as const,
@@ -629,43 +648,17 @@ export default function FormsPage() {
                       </div>
                     </div>
 
-                    {/* Type de présence - Seulement pour les formulaires PRESENCE */}
+                    {/* Type de présence - Masqué car toujours arrivée/départ chez BENIN EXCELLENCE */}
                     {createForm.purpose === 'PRESENCE' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                          Type de présence *
-                        </label>
-                        <div className="space-y-3">
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              name="presenceType"
-                              value="SIMPLE_PRESENCE"
-                              checked={createForm.type === 'SIMPLE_PRESENCE'}
-                              onChange={(e) => setCreateForm(prev => ({ ...prev, type: e.target.value as FormType }))}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                              required
-                            />
-                            <span className="ml-3 text-sm">
-                              <span className="font-medium text-gray-900">Présence simple</span>
-                              <span className="text-gray-500 block">Une seule présence par jour</span>
-                            </span>
-                          </label>
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              name="presenceType"
-                              value="ARRIVAL_DEPARTURE"
-                              checked={createForm.type === 'ARRIVAL_DEPARTURE'}
-                              onChange={(e) => setCreateForm(prev => ({ ...prev, type: e.target.value as FormType }))}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                              required
-                            />
-                            <span className="ml-3 text-sm">
-                              <span className="font-medium text-gray-900">Arrivée/Départ</span>
-                              <span className="text-gray-500 block">Deux présences par jour avec horaires</span>
-                            </span>
-                          </label>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-green-900">Type de présence configuré</h4>
+                            <p className="text-sm text-green-700">Arrivée/Départ - Deux présences par jour avec horaires</p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -673,122 +666,39 @@ export default function FormsPage() {
 
                   {/* Champs du formulaire */}
                   <div>
-                     <div className="flex items-center justify-between mb-4">
-                       <h4 className="text-md font-medium text-gray-900">Champs du formulaire</h4>
-                       {createForm.purpose === 'ENROLLMENT' && (
-                         <button
-                           type="button"
-                           onClick={addField}
-                           className="bg-black text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors flex items-center space-x-2 shadow-sm"
-                         >
-                           <Plus className="w-4 h-4" />
-                           <span>Ajouter un champ</span>
-                         </button>
-                       )}
-                       {createForm.purpose === 'PRESENCE' && (
-                         <div className="text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg">
-                           <strong>Champ automatique :</strong> UUID du visiteur (requis pour la vérification)
-                         </div>
-                       )}
-                     </div>
-
                     {createForm.purpose === 'PRESENCE' ? (
                       // Pour les formulaires de présence : seulement le message informatif
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                        <div className="flex items-center justify-center space-x-2 text-blue-800 mb-2">
-                          <CheckCircle className="w-6 h-6" />
-                          <span className="font-medium text-lg">Champ automatique configuré</span>
+                      <div>
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Configuration de présence</h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                          <div className="flex items-center justify-center space-x-2 text-blue-800 mb-2">
+                            <CheckCircle className="w-6 h-6" />
+                            <span className="font-medium text-lg">Champ automatique configuré</span>
+                          </div>
+                          <p className="text-blue-700 text-sm">
+                            Un champ <strong>"UUID du visiteur"</strong> (requis) sera automatiquement créé pour vérifier l'identité du visiteur lors du marquage de présence.
+                          </p>
+                          <p className="text-blue-600 text-xs mt-2">
+                            L'administrateur n'a qu'à déterminer le type de présence souhaité.
+                          </p>
                         </div>
-                        <p className="text-blue-700 text-sm">
-                          Un champ <strong>"UUID du visiteur"</strong> (requis) sera automatiquement créé pour vérifier l'identité du visiteur lors du marquage de présence.
-                        </p>
-                        <p className="text-blue-600 text-xs mt-2">
-                          L'administrateur n'a qu'à déterminer le type de présence souhaité.
-                        </p>
                       </div>
                     ) : (
-                      // Pour les formulaires d'enregistrement : interface complète
-                      <div className="space-y-3">
-                        {createForm.fields.map((field, index) => (
-                          <div key={index} className="border border-gray-200 rounded-lg p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                              <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Label du champ *
-                                </label>
-                                <input
-                                  type="text"
-                                  required
-                                  value={field.label}
-                                  onChange={(e) => updateField(index, { label: e.target.value })}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder="Ex: Nom complet"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Type *
-                                </label>
-                                <select
-                                  value={field.fieldType}
-                                  onChange={(e) => updateField(index, { fieldType: e.target.value as FieldType })}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                  <option value="TEXT">Texte</option>
-                                  <option value="NUMBER">Nombre</option>
-                                  <option value="DATE">Date</option>
-                                  <option value="SELECT">Sélection</option>
-                                  <option value="CHECKBOX">Case à cocher</option>
-                                  <option value="TEXTAREA">Zone de texte</option>
-                                </select>
-                              </div>
-
-                              <div className="flex items-center space-x-2">
-                                <label className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={field.isRequired}
-                                    onChange={(e) => updateField(index, { isRequired: e.target.checked })}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="ml-2 text-sm text-gray-700">Requis</span>
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() => removeField(index)}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {(field.fieldType === 'SELECT' || field.fieldType === 'CHECKBOX') && (
-                              <div className="mt-3">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Options (séparées par des points-virgules)
-                                </label>
-                                <input
-                                  type="text"
-                                  defaultValue={field.options.join(';')}
-                                  onBlur={(e) => updateField(index, { options: e.target.value.split(';').map(o => o.trim()).filter(o => o.length > 0) })}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder={field.fieldType === 'SELECT'
-                                    ? "Option 1;Option 2;Option 3"
-                                    : "Case 1;Case 2;Case 3"
-                                  }
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {field.fieldType === 'SELECT'
-                                    ? "Liste déroulante : l'utilisateur choisit UNE option"
-                                    : "Cases à cocher : l'utilisateur peut cocher MULTIPLE options"
-                                }
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                      // Pour les formulaires d'enregistrement : sélecteur de champs système
+                      <div>
+                        <h4 className="text-md font-medium text-gray-900 mb-4">Champs du formulaire</h4>
+                        <SystemFieldSelector
+                          availableFields={Object.values(SYSTEM_FIELDS)}
+                          selectedFields={createForm.selectedSystemFields}
+                          onFieldToggle={(fieldKey) => {
+                            setCreateForm(prev => ({
+                              ...prev,
+                              selectedSystemFields: prev.selectedSystemFields.includes(fieldKey)
+                                ? prev.selectedSystemFields.filter(f => f !== fieldKey)
+                                : [...prev.selectedSystemFields, fieldKey]
+                            }));
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -864,7 +774,7 @@ export default function FormsPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={creating || (createForm.purpose === 'PRESENCE' && !createForm.type) || (createForm.purpose === 'ENROLLMENT' && createForm.fields.length === 0)}
+                      disabled={creating || (createForm.purpose === 'ENROLLMENT' && createForm.selectedSystemFields.length === 0)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       {creating ? (
@@ -872,10 +782,8 @@ export default function FormsPage() {
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                           <span>Création...</span>
                         </>
-                      ) : createForm.purpose === 'PRESENCE' && !createForm.type ? (
-                        <span>Sélectionnez un type de présence</span>
-                      ) : createForm.purpose === 'ENROLLMENT' && createForm.fields.length === 0 ? (
-                        <span>Ajoutez au moins un champ</span>
+                      ) : createForm.purpose === 'ENROLLMENT' && createForm.selectedSystemFields.length === 0 ? (
+                        <span>Sélectionnez au moins un champ système</span>
                       ) : (
                         <span>Créer le formulaire</span>
                       )}
